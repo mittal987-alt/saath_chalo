@@ -101,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen>
                     borderRadius: BorderRadius.circular(30.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -141,7 +141,7 @@ class _SplashScreenState extends State<SplashScreen>
                 AppStrings.tagline,
                 style: TextStyle(
                   fontSize: 16.sp,
-                  color: AppColors.white.withOpacity(0.85),
+                  color: AppColors.white.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -170,7 +170,7 @@ class _SplashScreenState extends State<SplashScreen>
                 'Loading...',
                 style: TextStyle(
                   fontSize: 14.sp,
-                  color: AppColors.white.withOpacity(0.7),
+                  color: AppColors.white.withValues(alpha: 0.7),
                 ),
               ),
             ),

@@ -79,7 +79,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12.r),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -91,7 +91,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                             width: 48.w,
                             height: 48.w,
                             decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.1),
+                              color: AppColors.success.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(

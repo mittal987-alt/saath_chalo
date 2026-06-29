@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 80.w,
                 height: 80.w,
                 decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.2),
+                  color: AppColors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.directions_car_rounded,
@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 AppStrings.tagline,
                 style: TextStyle(
                   fontSize: 13.sp,
-                  color: AppColors.white.withOpacity(0.8),
+                  color: AppColors.white.withValues(alpha: 0.8),
                 ),
               ),
 
