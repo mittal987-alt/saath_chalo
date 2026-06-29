@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "620086233250",
+    "project_id": "saathchalo-ffa62",
+    "storage_bucket": "saathchalo-ffa62.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:620086233250:android:fc57d6d72e0a8df604effb",
+        "android_client_info": {
+          "package_name": "com.aayush.saathchalo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDdG6EZIzmfavuGTclHu8kwAZTiEd67Co"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
