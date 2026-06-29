@@ -73,9 +73,9 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.1),
+        color: AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -159,7 +159,7 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
           ),
         ],
@@ -168,7 +168,7 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
         secondary: Container(
           padding: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
-            color: AppColors.error.withOpacity(0.1),
+            color: AppColors.error.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8.r),
           ),
           child: Icon(icon, color: AppColors.error, size: 20.sp),

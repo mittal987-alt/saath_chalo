@@ -159,7 +159,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
               width: 36.w,
               height: 36.w,
               decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.2),
+                color: AppColors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.smart_toy_rounded,
@@ -192,7 +192,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
                       'Powered by Gemini AI',
                       style: TextStyle(
                         fontSize: 10.sp,
-                        color: AppColors.white.withOpacity(0.8),
+                        color: AppColors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -260,7 +260,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
               width: 32.w,
               height: 32.w,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.smart_toy_rounded,
@@ -277,7 +277,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
                 color: isUser
                     ? AppColors.primary
                     : isError
-                    ? AppColors.error.withOpacity(0.1)
+                    ? AppColors.error.withValues(alpha: 0.1)
                     : AppColors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16.r),
@@ -287,7 +287,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -312,7 +312,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
             SizedBox(width: 8.w),
             CircleAvatar(
               radius: 14.r,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Icon(Icons.person_rounded,
                   color: AppColors.primary, size: 16.sp),
             ),
@@ -377,7 +377,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
           height: 8.w,
           decoration: BoxDecoration(
             color: AppColors.primary
-                .withOpacity(0.3 + (value * 0.7)),
+                .withValues(alpha: 0.3 + (value * 0.7)),
             shape: BoxShape.circle,
           ),
         );
@@ -404,10 +404,10 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
               padding: EdgeInsets.symmetric(
                   horizontal: 12.w, vertical: 8.h),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20.r),
                 border: Border.all(
-                    color: AppColors.primary.withOpacity(0.3)),
+                    color: AppColors.primary.withValues(alpha: 0.3)),
               ),
               child: Text(
                 _suggestions[index],
@@ -431,7 +431,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),

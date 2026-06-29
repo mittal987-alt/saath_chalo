@@ -104,7 +104,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                     decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.3),
+                      color: AppColors.white.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Text(
@@ -221,17 +221,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           decoration: BoxDecoration(
             color: isRead
                 ? AppColors.white
-                : AppColors.primary.withOpacity(0.04),
+                : AppColors.primary.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
               color: isRead
                   ? AppColors.border
-                  : AppColors.primary.withOpacity(0.2),
+                  : AppColors.primary.withValues(alpha: 0.2),
               width: isRead ? 1 : 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
@@ -245,7 +245,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 46.w,
                 height: 46.w,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

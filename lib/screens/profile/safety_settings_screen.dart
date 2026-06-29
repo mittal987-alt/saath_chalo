@@ -74,7 +74,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.info, AppColors.info.withOpacity(0.8)],
+          colors: [AppColors.info, AppColors.info.withValues(alpha: 0.8)],
         ),
         borderRadius: BorderRadius.circular(16.r),
       ),
@@ -98,7 +98,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                 Text(
                   'Configure how we keep you safe during your rides.',
                   style: TextStyle(
-                    color: AppColors.white.withOpacity(0.9),
+                    color: AppColors.white.withValues(alpha: 0.9),
                     fontSize: 12.sp,
                   ),
                 ),
@@ -166,7 +166,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
           ),
         ],
@@ -175,7 +175,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         secondary: Container(
           padding: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
-            color: AppColors.info.withOpacity(0.1),
+            color: AppColors.info.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8.r),
           ),
           child: Icon(icon, color: AppColors.info, size: 20.sp),

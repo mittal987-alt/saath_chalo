@@ -1,18 +1,20 @@
-import '../../models/user_model.dart';
-import '../../services/firebase_services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/admin_config.dart';
+import '../../models/user_model.dart';
+import '../../services/firebase_services.dart';
 import '../auth/login_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
+import '../rating/reviews_screen.dart';
 import 'edit_profile_screen.dart';
 import 'ride_history_screen.dart';
 import 'emergency_contact_screen.dart';
 import 'notification_screen.dart';
-import '../payment/payment_history_screen.dart';
 import 'safety_settings_screen.dart';
 import 'sos_settings_screen.dart';
-import '../rating/reviews_screen.dart';
+import '../payment/payment_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -34,9 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _fetchUserData() async {
     if (_user != null) {
       final user = await FirebaseService().getUser(_user!.uid);
-      if (mounted) {
-        setState(() => _userModel = user);
-      }
+      if (mounted) setState(() => _userModel = user);
     }
   }
 
@@ -65,8 +65,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error),
+            style:
+            ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Logout'),
           ),
         ],
@@ -104,18 +104,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          // Profile Picture
           Stack(
             children: [
               CircleAvatar(
                 radius: 48.r,
                 backgroundColor: AppColors.white.withValues(alpha: 0.2),
-                backgroundImage: _userModel?.profilePic.isNotEmpty == true
-                    ? NetworkImage(_userModel!.profilePic)
-                    : null,
-                child: _userModel?.profilePic.isNotEmpty == true
-                    ? null
-                    : Icon(Icons.person_rounded, size: 56.sp, color: AppColors.white),
+                child: Icon(Icons.person_rounded,
+                    size: 56.sp, color: AppColors.white),
               ),
               Positioned(
                 right: 0,
@@ -138,7 +133,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           SizedBox(height: 16.h),
 
-          // Name
           Text(
             _userModel?.name ?? _user?.displayName ?? 'User',
             style: TextStyle(
@@ -150,7 +144,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           SizedBox(height: 4.h),
 
-          // Email
           Text(
             _userModel?.email ?? _user?.email ?? '',
             style: TextStyle(
@@ -161,7 +154,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           SizedBox(height: 12.h),
 
-          // Verified Badge
           Container(
             padding:
             EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
@@ -208,13 +200,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Row(
         children: [
-          _buildStatItem('${_userModel?.totalRides ?? 0}', 'Total\nRides', AppColors.primary),
+          _buildStatItem(
+              '${_userModel?.totalRides ?? 0}',
+              'Total\nRides',
+              AppColors.primary),
           _buildDivider(),
-          _buildStatItem('${_userModel?.rating ?? 5.0}', 'My\nRating', Colors.amber),
+          _buildStatItem(
+              '${_userModel?.rating ?? 5.0}',
+              'My\nRating',
+              Colors.amber),
           _buildDivider(),
-          _buildStatItem('₹${((_userModel?.totalRides ?? 0) * 150)}', 'Money\nSaved', AppColors.success),
+          _buildStatItem('₹2,450', 'Money\nSaved', AppColors.success),
           _buildDivider(),
-          _buildStatItem('${((_userModel?.totalRides ?? 0) * 1.5).toStringAsFixed(1)}kg', 'CO₂\nSaved', AppColors.info),
+          _buildStatItem('12kg', 'CO₂\nSaved', AppColors.info),
         ],
       ),
     );
@@ -260,168 +258,245 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ============ ACCOUNT ============
           _buildSectionTitle('Account'),
-          _buildMenuItem(Icons.person_rounded, 'Edit Profile',
-              AppColors.primary, () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const EditProfileScreen()));
-              }),
-          _buildMenuItem(Icons.phone_rounded, 'Phone Number',
-              AppColors.primary, () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Phone: ${_user?.phoneNumber ?? "Not set"}')),
-                );
-              }),
-          _buildMenuItem(Icons.star_rounded, 'My Ratings',
-              Colors.amber, () {
-                Navigator.push(
+          _buildMenuItem(
+            Icons.person_rounded,
+            'Edit Profile',
+            AppColors.primary,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const EditProfileScreen()),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.phone_rounded,
+            'Phone Number',
+            AppColors.primary,
+                () => ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    'Phone: ${_user?.phoneNumber ?? "Not set"}'),
+              ),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.star_rounded,
+            'My Ratings',
+            Colors.amber,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ReviewsScreen(
+                  userId: _user?.uid ?? '',
+                  userName: _user?.displayName ?? 'User',
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(height: 16.h),
+
+          // ============ RIDES ============
+          _buildSectionTitle('Rides'),
+          _buildMenuItem(
+            Icons.history_rounded,
+            'Ride History',
+            AppColors.secondary,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const RideHistoryScreen()),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.directions_car_rounded,
+            'My Offered Rides',
+            AppColors.secondary,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const RideHistoryScreen()),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.payments_rounded,
+            'Payment History',
+            AppColors.success,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const PaymentHistoryScreen()),
+            ),
+          ),
+
+          SizedBox(height: 16.h),
+
+          // ============ SAFETY ============
+          _buildSectionTitle('Safety'),
+          _buildMenuItem(
+            Icons.shield_rounded,
+            'Safety Settings',
+            AppColors.info,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const SafetySettingsScreen()),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.contacts_rounded,
+            'Emergency Contacts',
+            AppColors.error,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const EmergencyContactsScreen()),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.sos_rounded,
+            'SOS Settings',
+            AppColors.error,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const SOSSettingsScreen()),
+            ),
+          ),
+
+          SizedBox(height: 16.h),
+
+          // ============ APP ============
+          _buildSectionTitle('App'),
+          _buildMenuItem(
+            Icons.notifications_rounded,
+            'Notifications',
+            AppColors.primary,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen()),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.language_rounded,
+            'Language',
+            AppColors.primary,
+                () => showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r)),
+                title: const Text('Select Language'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      title: const Text('English'),
+                      leading: const Text('🇬🇧'),
+                      onTap: () => Navigator.pop(context),
+                    ),
+                    ListTile(
+                      title: const Text('हिंदी'),
+                      leading: const Text('🇮🇳'),
+                      onTap: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.help_rounded,
+            'Help & Support',
+            AppColors.primary,
+                () => showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r)),
+                title: const Text('Help & Support'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.email_rounded,
+                          color: AppColors.primary),
+                      title: const Text('Email Us'),
+                      subtitle:
+                      const Text('support@saathchalo.com'),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.phone_rounded,
+                          color: AppColors.primary),
+                      title: const Text('Call Us'),
+                      subtitle: const Text('+91 98765 43210'),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.chat_rounded,
+                          color: AppColors.primary),
+                      title: const Text('WhatsApp'),
+                      subtitle: const Text('+91 98765 43210'),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _buildMenuItem(
+            Icons.info_rounded,
+            'About SaathChalo',
+            AppColors.primary,
+                () => showAboutDialog(
+              context: context,
+              applicationName: 'SaathChalo',
+              applicationVersion: '1.0.0',
+              applicationIcon: Icon(
+                Icons.directions_car_rounded,
+                color: AppColors.primary,
+                size: 40.sp,
+              ),
+              children: [
+                const Text(
+                  'SaathChalo is an AI powered carpooling app for India. Save money, reduce pollution & travel together!',
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 16.h),
+
+          // ============ ADMIN BUTTON ============
+          if (AdminConfig.isAdmin(_user?.email))
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.only(bottom: 12.h),
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => ReviewsScreen(
-                      userId: _user?.uid ?? '',
-                      userName: _user?.displayName ?? 'User',
-                    ),
-                  ),
-                );
-              }),
+                      builder: (_) =>
+                      const AdminDashboardScreen()),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A237E),
+                  minimumSize: Size(double.infinity, 52.h),
+                ),
+                icon: const Icon(
+                    Icons.admin_panel_settings_rounded),
+                label: const Text('Admin Dashboard 👑'),
+              ),
+            ),
 
-          SizedBox(height: 16.h),
-          _buildSectionTitle('Rides'),
-          _buildMenuItem(Icons.history_rounded, 'Ride History',
-              AppColors.secondary, () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const RideHistoryScreen()));
-              }),
-          _buildMenuItem(Icons.directions_car_rounded, 'My Offered Rides',
-              AppColors.secondary, () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const RideHistoryScreen()));
-              }),
-          _buildMenuItem(Icons.payments_rounded, 'Payment History',
-              AppColors.success, () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const PaymentHistoryScreen()));
-              }),
-
-          SizedBox(height: 16.h),
-          _buildSectionTitle('Safety'),
-          _buildMenuItem(Icons.shield_rounded, 'Safety Settings',
-              AppColors.info, () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const SafetySettingsScreen()));
-              }),
-          _buildMenuItem(Icons.contacts_rounded, 'Emergency Contacts',
-              AppColors.error, () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const EmergencyContactsScreen()));
-              }),
-          _buildMenuItem(Icons.sos_rounded, 'SOS Settings',
-              AppColors.error, () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const SosSettingsScreen()));
-              }),
-
-          SizedBox(height: 16.h),
-          _buildSectionTitle('App'),
-          _buildMenuItem(Icons.notifications_rounded, 'Notifications',
-              AppColors.primary, () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const NotificationsScreen()));
-              }),
-          _buildMenuItem(Icons.language_rounded, 'Language',
-              AppColors.primary, () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.r)),
-                    title: const Text('Select Language'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: const Text('English'),
-                          leading: const Text('🇬🇧'),
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        ListTile(
-                          title: const Text('हिंदी'),
-                          leading: const Text('🇮🇳'),
-                          onTap: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-          _buildMenuItem(Icons.help_rounded, 'Help & Support',
-              AppColors.primary, () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.r)),
-                    title: const Text('Help & Support'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          leading: Icon(Icons.email_rounded,
-                              color: AppColors.primary),
-                          title: const Text('Email Us'),
-                          subtitle: const Text('support@saathchalo.com'),
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.phone_rounded,
-                              color: AppColors.primary),
-                          title: const Text('Call Us'),
-                          subtitle: const Text('+91 98765 43210'),
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.chat_rounded,
-                              color: AppColors.primary),
-                          title: const Text('WhatsApp'),
-                          subtitle: const Text('+91 98765 43210'),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-          _buildMenuItem(Icons.info_rounded, 'About SaathChalo',
-              AppColors.primary, () {
-                showAboutDialog(
-                  context: context,
-                  applicationName: 'SaathChalo',
-                  applicationVersion: '1.0.0',
-                  applicationIcon: Icon(Icons.directions_car_rounded,
-                      color: AppColors.primary, size: 40.sp),
-                  children: [
-                    const Text(
-                        'SaathChalo is an AI powered carpooling app for India. Save money, reduce pollution & travel together!'),
-                  ],
-                );
-              }),
-
-          SizedBox(height: 16.h),
-
-          // Logout Button
+          // ============ LOGOUT BUTTON ============
           Container(
             width: double.infinity,
             margin: EdgeInsets.only(bottom: 32.h),
@@ -429,6 +504,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: _logout,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
+                minimumSize: Size(double.infinity, 52.h),
               ),
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Logout'),

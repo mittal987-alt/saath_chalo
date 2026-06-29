@@ -259,7 +259,7 @@ class _RatingScreenState extends State<RatingScreen> {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
           ),
         ],
@@ -277,7 +277,7 @@ class _RatingScreenState extends State<RatingScreen> {
           SizedBox(height: 16.h),
           CircleAvatar(
             radius: 36.r,
-            backgroundColor: AppColors.primary.withOpacity(0.1),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
             child: Icon(Icons.person_rounded,
                 color: AppColors.primary, size: 42.sp),
           ),
@@ -311,7 +311,7 @@ class _RatingScreenState extends State<RatingScreen> {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
           ),
         ],
@@ -377,7 +377,7 @@ class _RatingScreenState extends State<RatingScreen> {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
           ),
         ],
@@ -453,7 +453,7 @@ class _RatingScreenState extends State<RatingScreen> {
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
           ),
         ],
