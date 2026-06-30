@@ -26,11 +26,23 @@ class RideHistoryScreen extends StatelessWidget {
         ),
         centerTitle: true,
         backgroundColor: AppColors.primary,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF00B09B),
+                Color(0xFF00A86B),
+              ],
+            ),
+          ),
+        ),
         foregroundColor: AppColors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(20.r),
+            bottom: Radius.circular(25.r),
           ),
         ),
       ),
@@ -122,16 +134,16 @@ class RideHistoryScreen extends StatelessWidget {
     if (isCompleted) statusColor = AppColors.success;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(14.w),
+      margin: EdgeInsets.only(bottom: 16.h),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -141,51 +153,62 @@ class RideHistoryScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.08),
+                  color: statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.2), width: 1),
                 ),
-                child: Text(
-                  ride.status.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                    letterSpacing: 0.3,
-                  ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isCompleted ? Icons.check_circle_rounded : isActive ? Icons.bolt_rounded : Icons.cancel_rounded,
+                      size: 14.sp,
+                      color: statusColor,
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      ride.status.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Text(
                 '₹${ride.pricePerSeat.toStringAsFixed(0)}',
                 style: TextStyle(
-                  fontSize: 16.sp,
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: AppColors.primary,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 16.h),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Custom Clean Vertical Map Route Indicator
               Padding(
-                padding: EdgeInsets.only(top: 3.h),
+                padding: EdgeInsets.only(top: 4.h),
                 child: Column(
                   children: [
                     Icon(Icons.circle, color: AppColors.primary, size: 8.sp),
                     Container(
                       width: 1.5,
-                      height: 24.h,
-                      color: AppColors.border.withValues(alpha: 0.6),
+                      height: 28.h,
+                      color: AppColors.border.withValues(alpha: 0.8),
                     ),
-                    Icon(Icons.location_on_rounded, color: AppColors.secondary, size: 12.sp),
+                    Icon(Icons.location_on_rounded, color: AppColors.secondary, size: 14.sp),
                   ],
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: 16.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,18 +218,18 @@ class RideHistoryScreen extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13.sp,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    SizedBox(height: 14.h),
+                    SizedBox(height: 20.h),
                     Text(
                       ride.to,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13.sp,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
@@ -214,25 +237,33 @@ class RideHistoryScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(width: 8.w),
+              SizedBox(width: 12.w),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${DateFormat('MMM d').format(ride.rideDate)}, ${ride.rideTime}',
+                    DateFormat('MMM d').format(ride.rideDate),
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    ride.rideTime,
                     style: TextStyle(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w500,
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  SizedBox(height: 14.h),
+                  SizedBox(height: 16.h),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.event_seat_rounded,
-                        size: 12.sp,
+                        size: 14.sp,
                         color: AppColors.textHint,
                       ),
                       SizedBox(width: 4.w),
@@ -240,7 +271,7 @@ class RideHistoryScreen extends StatelessWidget {
                         '${ride.availableSeats} seats',
                         style: TextStyle(
                           fontSize: 11.sp,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.bold,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -250,6 +281,43 @@ class RideHistoryScreen extends StatelessWidget {
               ),
             ],
           ),
+          if (isCompleted) ...[
+            SizedBox(height: 16.h),
+            const Divider(height: 1, color: AppColors.divider),
+            SizedBox(height: 12.h),
+            Row(
+              children: [
+                Icon(Icons.directions_car_rounded, size: 16.sp, color: AppColors.textHint),
+                SizedBox(width: 8.w),
+                Text(
+                  ride.vehicle,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    // Navigate to details if needed
+                  },
+                  child: Row(
+                    children: [
+                      Text(
+                        'View Details',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 10.sp, color: AppColors.primary),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

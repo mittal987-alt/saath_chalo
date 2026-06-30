@@ -61,6 +61,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
+    // Book seat
+    await firebaseService.bookSeat(widget.rideId);
+
     // Send notification to driver
     // We need to fetch the driverUid. For now we assume we have it or can get it from ride details.
     // Ideally we should pass driverUid to PaymentScreen

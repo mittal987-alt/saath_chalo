@@ -18,8 +18,25 @@ class PaymentHistoryScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Payment History'),
         backgroundColor: AppColors.primary,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF00B09B),
+                Color(0xFF00A86B),
+              ],
+            ),
+          ),
+        ),
         foregroundColor: AppColors.white,
         elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(25.r),
+          ),
+        ),
       ),
       body: user == null
           ? const Center(child: Text('Please login to view payment history'))
@@ -27,40 +44,16 @@ class PaymentHistoryScreen extends StatelessWidget {
               stream: FirebaseService().getPaymentHistory(user.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.payment_rounded,
-                            size: 80.sp, color: AppColors.textHint),
-                        SizedBox(height: 16.h),
-                        Text(
-                          'No payments yet',
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          'Your transaction history will appear here.',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: AppColors.textHint,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
+                  return _buildEmptyState();
                 }
 
                 return ListView.builder(
-                  padding: EdgeInsets.all(16.w),
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+                  physics: const BouncingScrollPhysics(),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
                     final data = snapshot.data!.docs[index].data()
@@ -72,32 +65,32 @@ class PaymentHistoryScreen extends StatelessWidget {
                         : 'N/A';
 
                     return Container(
-                      margin: EdgeInsets.only(bottom: 12.h),
+                      margin: EdgeInsets.only(bottom: 16.h),
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
                         color: AppColors.white,
-                        borderRadius: BorderRadius.circular(12.r),
+                        borderRadius: BorderRadius.circular(20.r),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
                       child: Row(
                         children: [
                           Container(
-                            width: 48.w,
-                            height: 48.w,
+                            width: 52.w,
+                            height: 52.w,
                             decoration: BoxDecoration(
                               color: AppColors.success.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(15.r),
                             ),
                             child: Icon(
-                              Icons.check_circle_rounded,
+                              Icons.payments_rounded,
                               color: AppColors.success,
-                              size: 24.sp,
+                              size: 26.sp,
                             ),
                           ),
                           SizedBox(width: 16.w),
@@ -106,9 +99,9 @@ class PaymentHistoryScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Payment Successful',
+                                  'Ride Payment',
                                   style: TextStyle(
-                                    fontSize: 14.sp,
+                                    fontSize: 15.sp,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.textPrimary,
                                   ),
@@ -118,27 +111,58 @@ class PaymentHistoryScreen extends StatelessWidget {
                                   date,
                                   style: TextStyle(
                                     fontSize: 12.sp,
+                                    fontWeight: FontWeight.w500,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
-                                SizedBox(height: 2.h),
-                                Text(
-                                  'ID: ${data['paymentId'] ?? 'N/A'}',
-                                  style: TextStyle(
-                                    fontSize: 10.sp,
-                                    color: AppColors.textHint,
+                                SizedBox(height: 4.h),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.background,
+                                    borderRadius: BorderRadius.circular(6.r),
+                                  ),
+                                  child: Text(
+                                    'ID: ${data['paymentId']?.toString().substring(0, 10)}...',
+                                    style: TextStyle(
+                                      fontSize: 10.sp,
+                                      fontFamily: 'monospace',
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Text(
-                            '₹${data['amount']?.toStringAsFixed(0) ?? '0'}',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.success,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '₹${data['amount']?.toStringAsFixed(0) ?? '0'}',
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Text(
+                                  'SUCCESS',
+                                  style: TextStyle(
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.success,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -147,6 +171,43 @@ class PaymentHistoryScreen extends StatelessWidget {
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(20.w),
+            decoration: BoxDecoration(
+              color: AppColors.border.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.account_balance_wallet_outlined,
+                size: 60.sp, color: AppColors.textHint),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            'No transactions yet',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'Your ride payments will appear here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

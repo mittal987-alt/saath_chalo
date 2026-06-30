@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
+import '../../models/review_model.dart';
 
 class ReviewsScreen extends StatelessWidget {
   final String userId;
@@ -72,7 +73,7 @@ class ReviewsScreen extends StatelessWidget {
   Widget _buildRatingSummary(List<ReviewModel> reviews) {
     double avgRating = reviews.isEmpty
         ? 0
-        : reviews.fold(0.0, (sum, r) => sum + r.rating) / reviews.length;
+        : reviews.fold(0.0, (previousValue, r) => previousValue + r.rating) / reviews.length;
 
     return Container(
       margin: EdgeInsets.all(16.w),

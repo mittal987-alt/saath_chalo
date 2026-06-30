@@ -30,15 +30,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.text = _user?.displayName ?? '';
     _emailController.text = _user?.email ?? '';
 
-    final userData =
-    await FirebaseService().getUser(_user?.uid ?? '');
+    final userData = await FirebaseService().getUser(_user?.uid ?? '');
     if (userData != null) {
       _phoneController.text = userData.phone;
     }
   }
 
   Future<void> _saveProfile() async {
-    if (_nameController.text.isEmpty) {
+    if (_nameController.text.trim().isEmpty) {
       _showSnack('Please enter your name!', isError: true);
       return;
     }
@@ -66,6 +65,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       SnackBar(
         content: Text(msg),
         backgroundColor: isError ? AppColors.error : AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
       ),
     );
   }
@@ -84,206 +85,228 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(
+          'Edit Profile',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.3,
+          ),
+        ),
+        centerTitle: true,
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(20.r),
+          ),
+        ),
         actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveProfile,
-            child: Text(
-              'Save',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
+          if (!_isLoading)
+            TextButton(
+              onPressed: _saveProfile,
+              child: Text(
+                'Save',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
         child: Column(
           children: [
-            // Profile Picture
+            // Modern Profile Photo Frame
             Center(
               child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: 56.r,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                    child: Icon(Icons.person_rounded,
-                        size: 64.sp, color: AppColors.primary),
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 4),
+                    ),
+                    child: CircleAvatar(
+                      radius: 50.r,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.05),
+                      child: Icon(Icons.person_rounded, size: 54.sp, color: AppColors.primary),
+                    ),
                   ),
                   Positioned(
-                    right: 0,
-                    bottom: 0,
+                    right: 2.w,
+                    bottom: 2.h,
                     child: Container(
-                      width: 36.w,
-                      height: 36.w,
+                      width: 32.w,
+                      height: 32.w,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                            color: AppColors.white, width: 2),
+                        border: Border.all(color: AppColors.white, width: 2),
                       ),
-                      child: Icon(Icons.camera_alt_rounded,
-                          size: 18.sp, color: AppColors.white),
+                      child: Icon(Icons.camera_alt_rounded, size: 15.sp, color: AppColors.white),
                     ),
                   ),
                 ],
               ),
             ),
-
-            SizedBox(height: 8.h),
+            SizedBox(height: 10.h),
             Text(
               'Tap to change photo',
               style: TextStyle(
-                fontSize: 13.sp,
+                fontSize: 12.sp,
                 color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
             ),
+            SizedBox(height: 28.h),
 
-            SizedBox(height: 24.h),
-
-            // Form Fields
-            _buildCard(
-              children: [
-                _buildField(
-                  'Full Name',
-                  _nameController,
-                  Icons.person_rounded,
-                  'Enter your full name',
-                ),
-                Divider(color: AppColors.divider),
-                _buildField(
-                  'Phone Number',
-                  _phoneController,
-                  Icons.phone_rounded,
-                  'Enter phone number',
-                  keyboardType: TextInputType.phone,
-                ),
-                Divider(color: AppColors.divider),
-                _buildField(
-                  'Email',
-                  _emailController,
-                  Icons.email_rounded,
-                  'Enter email address',
-                  keyboardType: TextInputType.emailAddress,
-                  readOnly: true,
-                ),
-              ],
+            // Form Input Stack
+            _buildInputField(
+              label: 'Full Name',
+              controller: _nameController,
+              icon: Icons.person_rounded,
+              hint: 'Enter your full name',
             ),
-
             SizedBox(height: 16.h),
-
-            _buildCard(
-              children: [
-                _buildField(
-                  'Bio',
-                  _bioController,
-                  Icons.info_rounded,
-                  'Tell others about yourself...',
-                  maxLines: 3,
-                ),
-              ],
+            _buildInputField(
+              label: 'Phone Number',
+              controller: _phoneController,
+              icon: Icons.phone_rounded,
+              hint: 'Enter phone number',
+              keyboardType: TextInputType.phone,
             ),
-
-            SizedBox(height: 24.h),
-
-            ElevatedButton(
-              onPressed: _isLoading ? null : _saveProfile,
-              child: _isLoading
-                  ? const CircularProgressIndicator(
-                  color: AppColors.white)
-                  : const Text('Save Changes'),
+            SizedBox(height: 16.h),
+            _buildInputField(
+              label: 'Email Address',
+              controller: _emailController,
+              icon: Icons.email_rounded,
+              hint: 'Enter email address',
+              keyboardType: TextInputType.emailAddress,
+              readOnly: true,
             ),
-
+            SizedBox(height: 16.h),
+            _buildInputField(
+              label: 'Bio',
+              controller: _bioController,
+              icon: Icons.info_rounded,
+              hint: 'Tell others about yourself...',
+              maxLines: 3,
+            ),
             SizedBox(height: 32.h),
+
+            // Primary Form Save Button
+            SizedBox(
+              width: double.infinity,
+              height: 48.h,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                ),
+                child: _isLoading
+                    ? SizedBox(
+                  height: 20.w,
+                  width: 20.w,
+                  child: const CircularProgressIndicator(color: AppColors.white, strokeWidth: 2.5),
+                )
+                    : Text(
+                  'Save Changes',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: AppColors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 80.h), // Safe spacing padding from UI overlaps
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCard({required List<Widget> children}) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Column(children: children),
-    );
-  }
-
-  Widget _buildField(
-      String label,
-      TextEditingController controller,
-      IconData icon,
-      String hint, {
-        TextInputType keyboardType = TextInputType.text,
-        bool readOnly = false,
-        int maxLines = 1,
-      }) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 12.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.primary, size: 22.sp),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                TextField(
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  readOnly: readOnly,
-                  maxLines: maxLines,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: TextStyle(
-                      color: AppColors.textHint,
-                      fontSize: 14.sp,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    filled: readOnly,
-                    fillColor: readOnly
-                        ? AppColors.background
-                        : Colors.transparent,
-                  ),
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: readOnly
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
-                  ),
-                ),
-              ],
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
+    bool readOnly = false,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 4.w, bottom: 6.h),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textSecondary.withValues(alpha: 0.8),
             ),
           ),
-        ],
-      ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: readOnly ? AppColors.border.withValues(alpha: 0.25) : AppColors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: readOnly
+                ? null
+                : [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            readOnly: readOnly,
+            maxLines: maxLines,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: readOnly ? AppColors.textSecondary : AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: AppColors.textHint.withValues(alpha: 0.6),
+                fontSize: 14.sp,
+              ),
+              prefixIcon: Icon(icon, color: readOnly ? AppColors.textHint : AppColors.primary, size: 18.sp),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14.r),
+                borderSide: BorderSide(color: AppColors.border.withValues(alpha: 0.5), width: 1),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14.r),
+                borderSide: BorderSide(color: AppColors.border.withValues(alpha: 0.4), width: 1),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14.r),
+                borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: maxLines > 1 ? 12.h : 0),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

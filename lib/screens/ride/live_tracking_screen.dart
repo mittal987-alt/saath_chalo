@@ -6,6 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
+import '../../services/firebase_services.dart';
+import '../rating/rating_screen.dart';
 
 class LiveTrackingScreen extends StatefulWidget {
   final String rideId;
@@ -425,9 +427,33 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
 
                   // End Ride Button
                   OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       _stopSharing();
-                      Navigator.pop(context);
+                      
+                      if (!widget.isDriver) {
+                        // If rider, prompt for rating
+                        final ride = await FirebaseService().getRide(widget.rideId);
+                        if (ride != null && context.mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RatingScreen(
+                                rideId: ride.rideId,
+                                driverName: ride.driverName,
+                                driverUid: ride.driverUid,
+                                from: ride.from,
+                                to: ride.to,
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                      } else {
+                        // If driver, mark ride as completed
+                        await FirebaseService().updateRideStatus(widget.rideId, 'completed');
+                      }
+                      
+                      if (context.mounted) Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(
                       minimumSize: Size(double.infinity, 48.h),
@@ -435,8 +461,8 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                     ),
                     icon: const Icon(Icons.stop_circle_rounded,
                         color: AppColors.error),
-                    label: const Text('End Ride',
-                        style: TextStyle(color: AppColors.error)),
+                    label: Text(widget.isDriver ? 'End & Complete Ride' : 'End Ride',
+                        style: const TextStyle(color: AppColors.error)),
                   ),
                 ],
               ),

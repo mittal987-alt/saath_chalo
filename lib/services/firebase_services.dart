@@ -136,6 +136,22 @@ class FirebaseService {
     await _db.collection('rides').doc(rideId).update({'status': status});
   }
 
+  // Book a seat (decrement available seats)
+  Future<void> bookSeat(String rideId) async {
+    await _db.collection('rides').doc(rideId).update({
+      'availableSeats': FieldValue.increment(-1),
+    });
+  }
+
+  // Get single ride details
+  Future<RideModel?> getRide(String rideId) async {
+    final doc = await _db.collection('rides').doc(rideId).get();
+    if (doc.exists) {
+      return RideModel.fromMap(doc.data()!);
+    }
+    return null;
+  }
+
   // Delete ride
   Future<void> deleteRide(String rideId) async {
     await _db.collection('rides').doc(rideId).delete();
