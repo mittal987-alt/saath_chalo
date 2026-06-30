@@ -37,40 +37,28 @@ class ReviewsScreen extends StatelessWidget {
             );
           }
 
-          // Dummy reviews for display
-          final dummyReviews = [
-            {
-              'reviewerName': 'Priya Singh',
-              'rating': 5.0,
-              'comment': '😊 Friendly, ⏰ On Time, 🚗 Safe Driver. Amazing ride experience!',
-              'time': '2 days ago',
-            },
-            {
-              'reviewerName': 'Amit Kumar',
-              'rating': 4.0,
-              'comment': '🎵 Good Music, 🚘 Clean Car. Very comfortable ride!',
-              'time': '1 week ago',
-            },
-            {
-              'reviewerName': 'Rahul Sharma',
-              'rating': 5.0,
-              'comment': '👍 Recommended, 💬 Great Conversation. Will ride again!',
-              'time': '2 weeks ago',
-            },
-          ];
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text('No reviews yet'),
+            );
+          }
+
+          final reviews = snapshot.data!.docs
+              .map((doc) => ReviewModel.fromMap(doc.data() as Map<String, dynamic>))
+              .toList();
 
           return Column(
             children: [
               // Rating Summary
-              _buildRatingSummary(dummyReviews),
+              _buildRatingSummary(reviews),
 
               // Reviews List
               Expanded(
                 child: ListView.builder(
                   padding: EdgeInsets.all(16.w),
-                  itemCount: dummyReviews.length,
+                  itemCount: reviews.length,
                   itemBuilder: (context, index) {
-                    return _buildReviewCard(dummyReviews[index]);
+                    return _buildReviewCard(reviews[index]);
                   },
                 ),
               ),
@@ -81,12 +69,10 @@ class ReviewsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRatingSummary(List<Map<String, dynamic>> reviews) {
+  Widget _buildRatingSummary(List<ReviewModel> reviews) {
     double avgRating = reviews.isEmpty
         ? 0
-        : reviews.fold(0.0,
-            (sum, r) => sum + (r['rating'] as double)) /
-        reviews.length;
+        : reviews.fold(0.0, (sum, r) => sum + r.rating) / reviews.length;
 
     return Container(
       margin: EdgeInsets.all(16.w),
@@ -117,8 +103,8 @@ class ReviewsScreen extends StatelessWidget {
               Row(
                 children: List.generate(
                   5,
-                      (i) => Icon(
-                    i < avgRating
+                  (i) => Icon(
+                    i < avgRating.round()
                         ? Icons.star_rounded
                         : Icons.star_outline_rounded,
                     color: Colors.amber,
@@ -143,23 +129,17 @@ class ReviewsScreen extends StatelessWidget {
           Expanded(
             child: Column(
               children: [5, 4, 3, 2, 1].map((star) {
-                final count = reviews
-                    .where((r) =>
-                (r['rating'] as double).round() == star)
-                    .length;
-                final percent =
-                reviews.isEmpty ? 0.0 : count / reviews.length;
+                final count = reviews.where((r) => r.rating.round() == star).length;
+                final percent = reviews.isEmpty ? 0.0 : count / reviews.length;
                 return Padding(
                   padding: EdgeInsets.symmetric(vertical: 2.h),
                   child: Row(
                     children: [
                       Text('$star',
                           style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppColors.textSecondary)),
+                              fontSize: 12.sp, color: AppColors.textSecondary)),
                       SizedBox(width: 4.w),
-                      Icon(Icons.star_rounded,
-                          color: Colors.amber, size: 12.sp),
+                      Icon(Icons.star_rounded, color: Colors.amber, size: 12.sp),
                       SizedBox(width: 8.w),
                       Expanded(
                         child: ClipRRect(
@@ -168,8 +148,7 @@ class ReviewsScreen extends StatelessWidget {
                             value: percent,
                             backgroundColor: AppColors.border,
                             valueColor:
-                            const AlwaysStoppedAnimation<Color>(
-                                Colors.amber),
+                                const AlwaysStoppedAnimation<Color>(Colors.amber),
                             minHeight: 6.h,
                           ),
                         ),
@@ -177,8 +156,7 @@ class ReviewsScreen extends StatelessWidget {
                       SizedBox(width: 8.w),
                       Text('$count',
                           style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppColors.textSecondary)),
+                              fontSize: 12.sp, color: AppColors.textSecondary)),
                     ],
                   ),
                 );
@@ -190,7 +168,17 @@ class ReviewsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReviewCard(Map<String, dynamic> review) {
+  Widget _buildReviewCard(ReviewModel review) {
+    String timeAgo(DateTime date) {
+      Duration diff = DateTime.now().difference(date);
+      if (diff.inDays > 365) return '${(diff.inDays / 365).floor()}y ago';
+      if (diff.inDays > 30) return '${(diff.inDays / 30).floor()}mo ago';
+      if (diff.inDays > 0) return '${diff.inDays}d ago';
+      if (diff.inHours > 0) return '${diff.inHours}h ago';
+      if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+      return 'Just now';
+    }
+
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
@@ -221,7 +209,7 @@ class ReviewsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      review['reviewerName'],
+                      review.reviewerName,
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
@@ -229,7 +217,7 @@ class ReviewsScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      review['time'],
+                      timeAgo(review.createdAt),
                       style: TextStyle(
                         fontSize: 11.sp,
                         color: AppColors.textHint,
@@ -242,8 +230,8 @@ class ReviewsScreen extends StatelessWidget {
               Row(
                 children: List.generate(
                   5,
-                      (i) => Icon(
-                    i < (review['rating'] as double)
+                  (i) => Icon(
+                    i < review.rating.round()
                         ? Icons.star_rounded
                         : Icons.star_outline_rounded,
                     color: Colors.amber,
@@ -255,7 +243,7 @@ class ReviewsScreen extends StatelessWidget {
           ),
           SizedBox(height: 10.h),
           Text(
-            review['comment'],
+            review.comment,
             style: TextStyle(
               fontSize: 13.sp,
               color: AppColors.textSecondary,

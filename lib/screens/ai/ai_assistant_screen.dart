@@ -331,7 +331,7 @@ For fare calculation: typical carpooling fare is ₹2-4 per km per seat.
             width: 32.w,
             height: 32.w,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.smart_toy_rounded,

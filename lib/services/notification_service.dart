@@ -57,7 +57,12 @@ class NotificationService {
       await _db
           .collection('users')
           .doc(_auth.currentUser!.uid)
-          .update({'fcmToken': token});
+          .set(
+        {
+          'fcmToken': token,
+        },
+        SetOptions(merge: true),
+      );
     }
 
     // Listen for token refresh
