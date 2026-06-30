@@ -6,12 +6,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/firebase_services.dart';
 
+import '../../core/constants/secrets.dart';
+
 class PaymentScreen extends StatefulWidget {
   final String rideId;
   final String driverName;
   final String from;
   final String to;
-  final double amount;
+  final double pricePerSeat;
+  final int seats;
 
   const PaymentScreen({
     super.key,
@@ -19,7 +22,8 @@ class PaymentScreen extends StatefulWidget {
     required this.driverName,
     required this.from,
     required this.to,
-    required this.amount,
+    required this.pricePerSeat,
+    required this.seats,
   });
 
   @override
@@ -29,11 +33,11 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   late Razorpay _razorpay;
   bool _isLoading = false;
+  String _selectedMethod = 'razorpay'; // 'razorpay' or 'cash'
   final User? _user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // ⚠️ Replace with your Razorpay Test Key
-  static const String _razorpayKey = 'rzp_test_T5pmt5yX2l5bm7';
+  double get totalAmount => widget.pricePerSeat * widget.seats;
 
   @override 
   void initState() {
@@ -56,22 +60,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'userId': _user?.uid,
       'paymentId': response.paymentId,
       'orderId': response.orderId,
-      'amount': widget.amount,
+      'amount': totalAmount,
       'status': 'success',
+      'method': 'online',
       'timestamp': FieldValue.serverTimestamp(),
     });
 
     // 2. Book seat (decrement availableSeats)
-    await firebaseService.bookSeat(widget.rideId);
+    for (int i = 0; i < widget.seats; i++) {
+      await firebaseService.bookSeat(widget.rideId);
+    }
 
     // 3. Update User Stats (Money Saved & CO2 Saved)
     if (_user != null) {
-      // Logic: 
-      // Money Saved = Fare price (by not taking an individual cab)
-      // CO2 Saved = Approx 0.2kg per km. For now, using a flat 1.5kg per ride.
       await _db.collection('users').doc(_user!.uid).update({
-        'totalMoneySaved': FieldValue.increment(widget.amount),
-        'totalCo2Saved': FieldValue.increment(1.5),
+        'totalMoneySaved': FieldValue.increment(totalAmount),
+        'totalCo2Saved': FieldValue.increment(1.5 * widget.seats),
         'totalRides': FieldValue.increment(1),
       });
     }
@@ -84,7 +88,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       await firebaseService.sendNotification(
         toUid: driverUid,
         title: 'Payment Received! 💰',
-        body: '${_user?.displayName ?? 'A rider'} paid ₹${widget.amount.toStringAsFixed(0)} for the ride.',
+        body: '${_user?.displayName ?? 'A rider'} paid ₹${totalAmount.toStringAsFixed(0)} for ${widget.seats} seat(s).',
         type: 'payment',
         data: {'rideId': widget.rideId},
       );
@@ -114,7 +118,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               SizedBox(height: 8.h),
               Text(
-                '₹${widget.amount.toStringAsFixed(0)} paid successfully!',
+                '₹${totalAmount.toStringAsFixed(0)} paid successfully!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14.sp,
@@ -151,6 +155,86 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
+  // ✅ Cash Payment Logic
+  void _payWithCash() async {
+    setState(() => _isLoading = true);
+    final FirebaseService firebaseService = FirebaseService();
+
+    try {
+      // 1. Save payment record
+      await _db.collection('payments').add({
+        'rideId': widget.rideId,
+        'userId': _user?.uid,
+        'amount': totalAmount,
+        'status': 'pending_cash',
+        'method': 'cash',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      // 2. Book seats
+      for (int i = 0; i < widget.seats; i++) {
+        await firebaseService.bookSeat(widget.rideId);
+      }
+
+      // 3. Update User Stats
+      if (_user != null) {
+        await _db.collection('users').doc(_user!.uid).update({
+          'totalMoneySaved': FieldValue.increment(totalAmount),
+          'totalCo2Saved': FieldValue.increment(1.5 * widget.seats),
+          'totalRides': FieldValue.increment(1),
+        });
+      }
+
+      // 4. Notify Driver
+      final rideDoc = await _db.collection('rides').doc(widget.rideId).get();
+      final driverUid = rideDoc.data()?['driverUid'];
+      if (driverUid != null) {
+        await firebaseService.sendNotification(
+          toUid: driverUid,
+          title: 'New Cash Booking! 💵',
+          body: '${_user?.displayName ?? 'A rider'} booked ${widget.seats} seat(s). Please collect ₹${totalAmount.toStringAsFixed(0)} at the end of the ride.',
+          type: 'payment_cash',
+          data: {'rideId': widget.rideId},
+        );
+      }
+
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.handshake_rounded, color: AppColors.primary, size: 80.sp),
+                SizedBox(height: 16.h),
+                Text('Booking Confirmed!', style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
+                SizedBox(height: 8.h),
+                Text('You have chosen to pay by Cash.', textAlign: TextAlign.center),
+                SizedBox(height: 12.h),
+                Text('Total to pay: ₹${totalAmount.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                SizedBox(height: 24.h),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Got it!'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
   // ❌ Payment Error
   void _onPaymentError(PaymentFailureResponse response) {
     setState(() => _isLoading = false);
@@ -172,15 +256,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  // 💳 Open Razorpay
-  void _openPayment() {
+  // 💳 Open Razorpay or Process Cash
+  void _handlePayment() {
+    if (_selectedMethod == 'razorpay') {
+      _openRazorpay();
+    } else {
+      _payWithCash();
+    }
+  }
+
+  void _openRazorpay() {
     setState(() => _isLoading = true);
 
     var options = {
-      'key': _razorpayKey,
-      'amount': (widget.amount * 100).toInt(), // Amount in paise
+      'key': Secrets.razorpayKey,
+      'amount': (totalAmount * 100).toInt(), // Amount in paise
       'name': 'SaathChalo',
-      'description': '${widget.from} → ${widget.to}',
+      'description': '${widget.from} → ${widget.to} (${widget.seats} seats)',
       'prefill': {
         'contact': _user?.phoneNumber ?? '',
         'email': _user?.email ?? '',
@@ -241,7 +333,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
             // Pay Button
             ElevatedButton.icon(
-              onPressed: _isLoading ? null : _openPayment,
+              onPressed: _isLoading ? null : _handlePayment,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 minimumSize: Size(double.infinity, 56.h),
@@ -253,11 +345,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: const CircularProgressIndicator(
                     color: AppColors.white, strokeWidth: 2),
               )
-                  : const Icon(Icons.payment_rounded),
+                  : Icon(_selectedMethod == 'razorpay' ? Icons.payment_rounded : Icons.handshake_rounded),
               label: Text(
                 _isLoading
                     ? 'Processing...'
-                    : 'Pay ₹${widget.amount.toStringAsFixed(0)}',
+                    : _selectedMethod == 'razorpay'
+                    ? 'Pay ₹${totalAmount.toStringAsFixed(0)}'
+                    : 'Confirm Cash Booking',
                 style: TextStyle(
                     fontSize: 18.sp, fontWeight: FontWeight.bold),
               ),
@@ -388,8 +482,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildPriceBreakdown() {
-    final double platformFee = widget.amount * 0.05;
-    final double total = widget.amount + platformFee;
+    final double subtotal = totalAmount;
+    final double platformFee = subtotal * 0.05;
+    final double total = subtotal + platformFee;
 
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -415,7 +510,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
           SizedBox(height: 16.h),
-          _buildPriceRow('Ride Fare', '₹${widget.amount.toStringAsFixed(0)}'),
+          _buildPriceRow('Fare (₹${widget.pricePerSeat.toStringAsFixed(0)} × ${widget.seats})', '₹${subtotal.toStringAsFixed(0)}'),
           SizedBox(height: 8.h),
           _buildPriceRow(
               'Platform Fee (5%)', '₹${platformFee.toStringAsFixed(0)}'),
@@ -423,7 +518,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Divider(color: AppColors.divider),
           SizedBox(height: 8.h),
           _buildPriceRow(
-            'Total',
+            'Total Amount',
             '₹${total.toStringAsFixed(0)}',
             isTotal: true,
           ),
@@ -485,55 +580,64 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
           SizedBox(height: 16.h),
-          _buildPaymentOption(Icons.account_balance_rounded,
-              'UPI (GPay, PhonePe, Paytm)', true),
-          _buildPaymentOption(Icons.credit_card_rounded,
-              'Credit / Debit Card', false),
-          _buildPaymentOption(Icons.account_balance_wallet_rounded,
-              'Net Banking', false),
+          _buildPaymentOption(
+            Icons.account_balance_rounded,
+            'Online (UPI, Card, NetBanking)',
+            _selectedMethod == 'razorpay',
+            () => setState(() => _selectedMethod = 'razorpay'),
+          ),
+          _buildPaymentOption(
+            Icons.money_rounded,
+            'Cash Payment',
+            _selectedMethod == 'cash',
+            () => setState(() => _selectedMethod = 'cash'),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildPaymentOption(
-      IconData icon, String label, bool isSelected) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isSelected ? AppColors.primary : AppColors.border,
-          width: isSelected ? 2 : 1,
-        ),
-        borderRadius: BorderRadius.circular(10.r),
-        color: isSelected
-            ? AppColors.primary.withValues(alpha: 0.05)
-            : AppColors.white,
-      ),
-      child: Row(
-        children: [
-          Icon(icon,
-              color:
-              isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: 22.sp),
-          SizedBox(width: 12.w),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight:
-              isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
-            ),
+      IconData icon, String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 8.h),
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 2 : 1,
           ),
-          const Spacer(),
-          if (isSelected)
-            Icon(Icons.check_circle_rounded,
-                color: AppColors.primary, size: 18.sp),
-        ],
+          borderRadius: BorderRadius.circular(10.r),
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.05)
+              : AppColors.white,
+        ),
+        child: Row(
+          children: [
+            Icon(icon,
+                color:
+                isSelected ? AppColors.primary : AppColors.textSecondary,
+                size: 22.sp),
+            SizedBox(width: 12.w),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight:
+                isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              Icon(Icons.check_circle_rounded,
+                  color: AppColors.primary, size: 18.sp),
+          ],
+        ),
       ),
     );
   }

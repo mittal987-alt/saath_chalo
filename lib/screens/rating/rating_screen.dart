@@ -87,7 +87,7 @@ class _RatingScreenState extends State<RatingScreen> {
 
       // Increment driver's CO2 saved for offering the ride
       await _db.collection('users').doc(widget.driverUid).update({
-        'totalCo2Saved': FieldValue.increment(2.0), // Driver saves more as they are the primary vehicle
+        'totalCo2Saved': FieldValue.increment(2.5), // Driver saves more as they are the primary vehicle
       });
 
       setState(() => _isLoading = false);

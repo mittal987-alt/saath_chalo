@@ -268,7 +268,27 @@ class _FindRideScreenState extends State<FindRideScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 48.sp),
+                  SizedBox(height: 12.h),
+                  const Text(
+                    'Setting up search index...',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8.h),
+                  const Text(
+                    'Please click the link in the console to create the required Firestore index.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
         final rides = snapshot.data ?? [];
         if (rides.isEmpty) {
@@ -317,231 +337,316 @@ class _FindRideScreenState extends State<FindRideScreen> {
   Widget _buildRideCard(RideModel ride) {
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(24.r), // Premium rounded corners
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: AppColors.primary.withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22.r,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                child: ride.driverPhone.isNotEmpty // Simplified check
-                    ? Icon(Icons.person_rounded,
-                    color: AppColors.primary, size: 26.sp)
-                    : Icon(Icons.person_rounded,
-                    color: AppColors.primary, size: 26.sp),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Text(ride.driverName,
-                        style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
-                    Row(
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 2),
+                      ),
+                      child: CircleAvatar(
+                        radius: 24.r,
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.05),
+                        child: Icon(Icons.person_rounded,
+                            color: AppColors.primary, size: 28.sp),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(ride.driverName,
+                              style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary)),
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4.r),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.star_rounded,
+                                        color: Colors.amber, size: 14.sp),
+                                    SizedBox(width: 2.w),
+                                    Text('${ride.driverRating}',
+                                        style: TextStyle(
+                                            fontSize: 12.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.amber[800])),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 14.sp),
+                              SizedBox(width: 2.w),
+                              Text('Verified', style: TextStyle(fontSize: 11.sp, color: AppColors.primary)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Icon(Icons.star_rounded,
-                            color: Colors.amber, size: 14.sp),
-                        SizedBox(width: 2.w),
-                        Text('${ride.driverRating}',
+                        Text(
+                          '₹${ride.pricePerSeat.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 22.sp,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Text('per seat',
                             style: TextStyle(
-                                fontSize: 12.sp,
+                                fontSize: 11.sp,
                                 color: AppColors.textSecondary)),
                       ],
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '₹${ride.pricePerSeat.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  Text('per seat',
-                      style: TextStyle(
-                          fontSize: 11.sp,
-                          color: AppColors.textSecondary)),
-                ],
-              ),
-            ],
-          ),
 
-          SizedBox(height: 16.h),
-          const Divider(color: AppColors.divider, height: 1),
-          SizedBox(height: 16.h),
+                SizedBox(height: 20.h),
 
-          Row(
-            children: [
-              Column(
-                children: [
-                  Icon(Icons.circle, color: AppColors.primary, size: 10.sp),
-                  Container(width: 1.5, height: 24.h, color: AppColors.border),
-                  Icon(Icons.location_on,
-                      color: AppColors.secondary, size: 14.sp),
-                ],
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
                   children: [
-                    Text(ride.from,
-                        style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
-                    SizedBox(height: 16.h),
-                    Text(ride.to,
-                        style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
+                    Column(
+                      children: [
+                        Icon(Icons.radio_button_checked, color: AppColors.primary, size: 16.sp),
+                        Container(width: 2, height: 30.h,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [AppColors.primary, AppColors.secondary],
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.location_on_rounded,
+                            color: AppColors.secondary, size: 18.sp),
+                      ],
+                    ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(ride.from,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary)),
+                          SizedBox(height: 28.h),
+                          Text(ride.to,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary)),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Text(ride.rideTime,
+                              style: TextStyle(
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary)),
+                        ),
+                        SizedBox(height: 24.h),
+                        Row(
+                          children: [
+                            Icon(Icons.event_seat_rounded,
+                                size: 16.sp, color: AppColors.primary),
+                            SizedBox(width: 4.w),
+                            Text('${ride.availableSeats} Left',
+                                style: TextStyle(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: ride.availableSeats < 2 ? AppColors.error : AppColors.textSecondary)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(ride.rideTime,
-                      style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary)),
-                  SizedBox(height: 16.h),
-                  Row(
-                    children: [
-                      Icon(Icons.event_seat_rounded,
-                          size: 14.sp, color: AppColors.textSecondary),
-                      SizedBox(width: 4.w),
-                      Text('${ride.availableSeats} seats',
-                          style: TextStyle(
-                              fontSize: 12.sp,
-                              color: AppColors.textSecondary)),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RatingScreen(
-                    rideId: ride.rideId,
-                    driverName: ride.driverName,
-                    driverUid: ride.driverUid,
-                    from: ride.from,
-                    to: ride.to,
-                  ),
+
+                SizedBox(height: 20.h),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.all(10.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.directions_car_filled_rounded,
+                                size: 18.sp, color: AppColors.textSecondary),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: Text(ride.vehicle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textSecondary)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    _buildFeatureIcon(Icons.ac_unit_rounded, "AC"),
+                    SizedBox(width: 8.w),
+                    _buildFeatureIcon(Icons.music_note_rounded, "Music"),
+                  ],
                 ),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              minimumSize: Size(double.infinity, 44.h),
-              side: const BorderSide(color: AppColors.primary),
-            ),
-            icon: const Icon(Icons.star_rounded,
-                color: Colors.amber),
-            label: Text(
-              'Rate this Driver',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 14.sp,
-              ),
-            ),
-          ),
-
-          SizedBox(height: 12.h),
-
-          Container(
-            padding:
-            EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.directions_car_rounded,
-                    size: 16.sp, color: AppColors.textSecondary),
-                SizedBox(width: 8.w),
-                Text(ride.vehicle,
-                    style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondary)),
               ],
             ),
           ),
 
-          SizedBox(height: 12.h),
-
-          ElevatedButton(
-            onPressed: () async {
-              // Send request notification to driver
-              await FirebaseService().sendNotification(
-                toUid: ride.driverUid,
-                title: 'New Ride Request! 🚗',
-                body: '${FirebaseAuth.instance.currentUser?.displayName ?? 'Someone'} wants to join your ride from ${ride.from} to ${ride.to}.',
-                type: 'ride_request',
-                data: {'rideId': ride.rideId},
-              );
-
-              if (!context.mounted) return;
-
-              // Go to payment first
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PaymentScreen(
-                    rideId: ride.rideId,
-                    driverName: ride.driverName,
-                    from: ride.from,
-                    to: ride.to,
-                    amount: ride.pricePerSeat,
+          // Bottom Action Bar
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24.r),
+                bottomRight: Radius.circular(24.r),
+              ),
+              border: Border(top: BorderSide(color: AppColors.divider)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => RatingScreen(
+                            rideId: ride.rideId,
+                            driverName: ride.driverName,
+                            driverUid: ride.driverUid,
+                            from: ride.from,
+                            to: ride.to,
+                          ),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    ),
+                    child: Text('View Profile'),
                   ),
                 ),
-              );
+                SizedBox(width: 12.w),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      // Send request notification to driver
+                      await FirebaseService().sendNotification(
+                        toUid: ride.driverUid,
+                        title: 'New Ride Request! 🚗',
+                        body: '${FirebaseAuth.instance.currentUser?.displayName ?? 'Someone'} wants to join your ride from ${ride.from} to ${ride.to}.',
+                        type: 'ride_request',
+                        data: {'rideId': ride.rideId},
+                      );
 
-              if (!context.mounted) return;
+                      if (!context.mounted) return;
 
-              // After payment, open live tracking
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => LiveTrackingScreen(
-                    rideId: ride.rideId,
-                    isDriver: false,
+                      // Go to payment first
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PaymentScreen(
+                            rideId: ride.rideId,
+                            driverName: ride.driverName,
+                            from: ride.from,
+                            to: ride.to,
+                            pricePerSeat: ride.pricePerSeat,
+                            seats: _seats,
+                          ),
+                        ),
+                      );
+
+                      if (!context.mounted) return;
+
+                      // After payment, open live tracking
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LiveTrackingScreen(
+                            rideId: ride.rideId,
+                            isDriver: false,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                      elevation: 0,
+                    ),
+                    child: Text('Book Now'),
                   ),
                 ),
-              );
-            },
-            child: const Text('Request Ride'),
-          )
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFeatureIcon(IconData icon, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Icon(icon, size: 16.sp, color: AppColors.primary),
     );
   }
 }

@@ -686,9 +686,9 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(height: 14.h),
           Row(
             children: [
-              _buildStatCard('₹${((_userModel?.totalRides ?? 0) * 150)}', 'Money Saved', Icons.savings_rounded, AppColors.primary),
+              _buildStatCard('₹${(_userModel?.totalMoneySaved ?? 0).toStringAsFixed(0)}', 'Money Saved', Icons.savings_rounded, AppColors.primary),
               SizedBox(width: 10.w),
-              _buildStatCard('${((_userModel?.totalRides ?? 0) * 1.5).toStringAsFixed(1)} kg', 'CO₂ Reduced', Icons.eco_rounded, AppColors.success),
+              _buildStatCard('${(_userModel?.totalCo2Saved ?? 0).toStringAsFixed(1)} kg', 'CO₂ Reduced', Icons.eco_rounded, AppColors.success),
               SizedBox(width: 10.w),
               _buildStatCard('${_userModel?.totalRides ?? 0}', 'Total Rides', Icons.directions_car_rounded, AppColors.secondary),
             ],
