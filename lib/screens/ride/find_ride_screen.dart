@@ -3,10 +3,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firebase_services.dart';
 import '../../models/ride_model.dart';
+import '../../models/ride_alert_model.dart';
 import '../../core/constants/app_colors.dart';
 import '../payment/payment_screen.dart';
 import 'live_tracking_screen.dart';
 import '../rating/rating_screen.dart';
+import 'package:uuid/uuid.dart';
 
 class FindRideScreen extends StatefulWidget {
   const FindRideScreen({super.key});
@@ -39,6 +41,30 @@ class _FindRideScreenState extends State<FindRideScreen> {
         _toController.text,
       );
     });
+  }
+
+  Future<void> _setRideAlert() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final alert = RideAlertModel(
+      id: const Uuid().v4(),
+      uid: uid,
+      from: _fromController.text,
+      to: _toController.text,
+      rideDate: _selectedDate,
+      createdAt: DateTime.now(),
+    );
+
+    await FirebaseService().createRideAlert(alert);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Ride alert set! We will notify you when a match is found.'),
+        backgroundColor: AppColors.primary,
+      ),
+    );
   }
 
   @override
@@ -248,7 +274,20 @@ class _FindRideScreenState extends State<FindRideScreen> {
         if (rides.isEmpty) {
           return Padding(
             padding: EdgeInsets.all(20.w),
-            child: const Center(child: Text('No rides found for this route')),
+            child: Column(
+              children: [
+                const Center(child: Text('No rides found for this route')),
+                SizedBox(height: 16.h),
+                ElevatedButton.icon(
+                  onPressed: _setRideAlert,
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  label: const Text('Notify me when available'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                  ),
+                ),
+              ],
+            ),
           );
         }
 

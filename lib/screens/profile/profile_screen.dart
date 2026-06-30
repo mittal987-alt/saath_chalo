@@ -186,9 +186,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildStatsRow() {
     final totalRides = _userModel?.totalRides ?? 0;
     final rating = _userModel?.rating ?? 5.0;
-    // Logic for calculated stats
-    final moneySaved = totalRides * 150; 
-    final co2Reduced = totalRides * 1.5;
+    final moneySaved = _userModel?.totalMoneySaved ?? 0.0;
+    final co2Reduced = _userModel?.totalCo2Saved ?? 0.0;
 
     return Container(
       margin: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
@@ -211,9 +210,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildDivider(),
           _buildStatItem('${rating.toStringAsFixed(1)} ★', 'My Rating', Colors.amber),
           _buildDivider(),
-          _buildStatItem('₹$moneySaved', 'Saved', const Color(0xFF00A86B)),
+          _buildStatItem('₹${moneySaved.toStringAsFixed(0)}', 'Saved', const Color(0xFF00A86B)),
           _buildDivider(),
-          _buildStatItem('${co2Reduced.toStringAsFixed(0)}kg', 'CO₂ Saved', const Color(0xFF1565C0)),
+          _buildStatItem('${co2Reduced.toStringAsFixed(1)}kg', 'CO₂ Saved', const Color(0xFF1565C0)),
         ],
       ),
     );

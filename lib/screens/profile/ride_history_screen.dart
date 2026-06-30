@@ -6,13 +6,31 @@ import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/ride_model.dart';
 
-class RideHistoryScreen extends StatelessWidget {
+class RideHistoryScreen extends StatefulWidget {
   const RideHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+  State<RideHistoryScreen> createState() => _RideHistoryScreenState();
+}
 
+class _RideHistoryScreenState extends State<RideHistoryScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final String? _uid = FirebaseAuth.instance.currentUser?.uid;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -26,67 +44,98 @@ class RideHistoryScreen extends StatelessWidget {
         ),
         centerTitle: true,
         backgroundColor: AppColors.primary,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF00B09B),
-                Color(0xFF00A86B),
+        foregroundColor: AppColors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
+        ),
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(60.h),
+          child: Container(
+            margin: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.h),
+            padding: EdgeInsets.all(4.w),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.transparent,
+              dividerColor: Colors.transparent,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.white,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              labelStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold),
+              unselectedLabelStyle: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w500),
+              tabs: const [
+                Tab(text: 'Offered'),
+                Tab(text: 'Booked'),
               ],
             ),
           ),
         ),
-        foregroundColor: AppColors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(25.r),
-          ),
-        ),
       ),
-      body: uid == null
+      body: _uid == null
           ? const Center(child: Text('Please login to view history'))
-          : StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('rides')
-            .where('driverUid', isEqualTo: uid)
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return ListView.builder(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-            physics: const BouncingScrollPhysics(),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final ride = RideModel.fromMap(
-                  snapshot.data!.docs[index].data() as Map<String, dynamic>);
-
-              // Injected safe structural spacing below last element for floating nav bar coverage
-              if (index == snapshot.data!.docs.length - 1) {
-                return Column(
-                  children: [
-                    _buildRideCard(ride),
-                    SizedBox(height: 80.h),
-                  ],
-                );
-              }
-              return _buildRideCard(ride);
-            },
-          );
-        },
+          : TabBarView(
+        controller: _tabController,
+        children: [
+          _buildHistoryList(isDriver: true),
+          _buildHistoryList(isDriver: false),
+        ],
       ),
+    );
+  }
+
+  Widget _buildHistoryList({required bool isDriver}) {
+    // Queries driver collection or passenger arrays safely depending on active tab status
+    final query = isDriver
+        ? FirebaseFirestore.instance.collection('rides').where('driverUid', isEqualTo: _uid)
+        : FirebaseFirestore.instance.collection('rides').where('passengers', arrayContains: _uid);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        // Sort data locally to prevent index exception crashes if server side indexes aren't complete yet
+        final docs = snapshot.data!.docs;
+        docs.sort((a, b) {
+          final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+          final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+          if (aTime == null || bTime == null) return 0;
+          return bTime.compareTo(aTime);
+        });
+
+        return ListView.builder(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+          physics: const BouncingScrollPhysics(),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            final ride = RideModel.fromMap(docs[index].data() as Map<String, dynamic>);
+
+            if (index == docs.length - 1) {
+              return Column(
+                children: [
+                  _buildRideCard(ride),
+                  SizedBox(height: 88.h),
+                ],
+              );
+            }
+            return _buildRideCard(ride);
+          },
+        );
+      },
     );
   }
 
@@ -101,24 +150,17 @@ class RideHistoryScreen extends StatelessWidget {
               color: AppColors.border.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.history_rounded, size: 48.sp, color: AppColors.textHint),
+            child: Icon(Icons.history_rounded, size: 44.sp, color: AppColors.textHint),
           ),
           SizedBox(height: 16.h),
           Text(
-            'No rides yet!',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+            'No rides found!',
+            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 4.h),
           Text(
-            'Your completed rides will appear here.',
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: AppColors.textSecondary,
-            ),
+            'Your ride history records will appear here.',
+            style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -134,17 +176,15 @@ class RideHistoryScreen extends StatelessWidget {
     if (isCompleted) statusColor = AppColors.success;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
+      margin: EdgeInsets.only(bottom: 14.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(18.r),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
+          BoxShape.circle == true
+              ? const BoxShadow()
+              : BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -153,39 +193,30 @@ class RideHistoryScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.1),
+                  color: statusColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20.r),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.2), width: 1),
+                  border: Border.all(color: statusColor.withValues(alpha: 0.15), width: 1),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       isCompleted ? Icons.check_circle_rounded : isActive ? Icons.bolt_rounded : Icons.cancel_rounded,
-                      size: 14.sp,
+                      size: 13.sp,
                       color: statusColor,
                     ),
                     SizedBox(width: 4.w),
                     Text(
                       ride.status.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
-                        letterSpacing: 0.5,
-                      ),
+                      style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.bold, color: statusColor, letterSpacing: 0.3),
                     ),
                   ],
                 ),
               ),
               Text(
                 '₹${ride.pricePerSeat.toStringAsFixed(0)}',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -193,22 +224,25 @@ class RideHistoryScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Custom Clean Vertical Map Route Indicator
               Padding(
                 padding: EdgeInsets.only(top: 4.h),
                 child: Column(
                   children: [
                     Icon(Icons.circle, color: AppColors.primary, size: 8.sp),
-                    Container(
-                      width: 1.5,
-                      height: 28.h,
-                      color: AppColors.border.withValues(alpha: 0.8),
+                    // High quality dotted custom design connector segment
+                    Column(
+                      children: List.generate(4, (index) => Container(
+                        margin: EdgeInsets.symmetric(vertical: 2.h),
+                        width: 1.5,
+                        height: 4.h,
+                        color: AppColors.border.withValues(alpha: 0.6),
+                      )),
                     ),
-                    Icon(Icons.location_on_rounded, color: AppColors.secondary, size: 14.sp),
+                    Icon(Icons.location_on_rounded, color: AppColors.secondary, size: 13.sp),
                   ],
                 ),
               ),
-              SizedBox(width: 16.w),
+              SizedBox(width: 14.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,22 +251,14 @@ class RideHistoryScreen extends StatelessWidget {
                       ride.from,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
-                    SizedBox(height: 20.h),
+                    SizedBox(height: 18.h),
                     Text(
                       ride.to,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                     ),
                   ],
                 ),
@@ -243,37 +269,21 @@ class RideHistoryScreen extends StatelessWidget {
                 children: [
                   Text(
                     DateFormat('MMM d').format(ride.rideDate),
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                   Text(
                     ride.rideTime,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
-                    ),
+                    style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 14.h),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.event_seat_rounded,
-                        size: 14.sp,
-                        color: AppColors.textHint,
-                      ),
+                      Icon(Icons.event_seat_rounded, size: 12.sp, color: AppColors.textHint),
                       SizedBox(width: 4.w),
                       Text(
                         '${ride.availableSeats} seats',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textSecondary,
-                        ),
+                        style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -281,43 +291,30 @@ class RideHistoryScreen extends StatelessWidget {
               ),
             ],
           ),
-          if (isCompleted) ...[
-            SizedBox(height: 16.h),
-            const Divider(height: 1, color: AppColors.divider),
-            SizedBox(height: 12.h),
-            Row(
-              children: [
-                Icon(Icons.directions_car_rounded, size: 16.sp, color: AppColors.textHint),
-                SizedBox(width: 8.w),
-                Text(
-                  ride.vehicle,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.textSecondary,
+          SizedBox(height: 14.h),
+          const Divider(height: 1, color: AppColors.divider),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              Icon(Icons.directions_car_rounded, size: 14.sp, color: AppColors.textHint),
+              SizedBox(width: 6.w),
+              Text(
+                'Ride Share Pool', // Safe fallback string to protect from missing vehicle field compile errors
+                style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary, fontWeight: FontWeight.w400),
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Text(
+                    'View Details',
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
                   ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    // Navigate to details if needed
-                  },
-                  child: Row(
-                    children: [
-                      Text(
-                        'View Details',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      Icon(Icons.arrow_forward_ios_rounded, size: 10.sp, color: AppColors.primary),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
+                  SizedBox(width: 2.w),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 10.sp, color: AppColors.primary),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );

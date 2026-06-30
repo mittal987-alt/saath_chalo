@@ -48,6 +48,10 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         vehicle: _vehicleController.text,
         from: _fromController.text,
         to: _toController.text,
+        fromLat: 0.0, // Should ideally be fetched from a map picker
+        fromLng: 0.0,
+        toLat: 0.0,
+        toLng: 0.0,
         rideDate: _selectedDate,
         rideTime: _selectedTime.format(context),
         availableSeats: _seats,
@@ -122,12 +126,14 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Offer a Ride'),
-        backgroundColor: AppColors.secondary,
+        backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 40.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -144,6 +150,12 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                       hintText: 'Starting location',
                       prefixIcon: Icon(Icons.circle,
                           color: AppColors.primary, size: 12.sp),
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                   SizedBox(height: 12.h),
@@ -155,6 +167,12 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                       hintText: 'Destination',
                       prefixIcon: Icon(Icons.location_on,
                           color: AppColors.secondary, size: 20.sp),
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ],
@@ -183,9 +201,9 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                           setState(() => _selectedDate = date);
                       },
                       child: Container(
-                        padding: EdgeInsets.all(12.w),
+                        padding: EdgeInsets.all(14.w),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.border),
+                          color: AppColors.background,
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Row(
@@ -195,7 +213,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                             SizedBox(width: 8.w),
                             Text(
                               '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                              style: TextStyle(fontSize: 13.sp),
+                              style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -217,9 +235,9 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                           setState(() => _selectedTime = time);
                       },
                       child: Container(
-                        padding: EdgeInsets.all(12.w),
+                        padding: EdgeInsets.all(14.w),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.border),
+                          color: AppColors.background,
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Row(
@@ -229,7 +247,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                             SizedBox(width: 8.w),
                             Text(
                               _selectedTime.format(context),
-                              style: TextStyle(fontSize: 13.sp),
+                              style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -251,9 +269,15 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                   SizedBox(height: 8.h),
                   TextFormField(
                     controller: _vehicleController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'e.g. Swift Dzire • DL 4C 1234',
-                      prefixIcon: Icon(Icons.directions_car_rounded),
+                      prefixIcon: const Icon(Icons.directions_car_rounded),
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                   SizedBox(height: 12.h),
@@ -269,9 +293,15 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                             TextFormField(
                               controller: _priceController,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 hintText: '₹ Amount',
-                                prefixIcon: Icon(Icons.currency_rupee_rounded),
+                                prefixIcon: const Icon(Icons.currency_rupee_rounded),
+                                filled: true,
+                                fillColor: AppColors.background,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderSide: BorderSide.none,
+                                ),
                               ),
                             ),
                           ],
@@ -287,11 +317,10 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                             SizedBox(height: 8.h),
                             Container(
                               padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w, vertical: 14.h),
+                                  horizontal: 12.w, vertical: 10.h),
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.border),
                                 borderRadius: BorderRadius.circular(12.r),
-                                color: AppColors.white,
+                                color: AppColors.background,
                               ),
                               child: Row(
                                 mainAxisAlignment:
@@ -351,7 +380,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                       Text(
                         'Only women can request this ride',
                         style: TextStyle(
-                          fontSize: 12.sp,
+                          fontSize: 11.sp,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -366,23 +395,34 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
               ),
             ),
 
-            SizedBox(height: 24.h),
+            SizedBox(height: 32.h),
 
             // Offer Ride Button
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _offerRide,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
+            SizedBox(
+              width: double.infinity,
+              height: 54.h,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _offerRide,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  elevation: 0,
+                ),
+                icon: _isLoading
+                    ? SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: const CircularProgressIndicator(
+                      color: AppColors.white, strokeWidth: 2),
+                )
+                    : const Icon(Icons.directions_car_rounded),
+                label: Text(
+                  _isLoading ? 'Publishing...' : 'Publish Ride',
+                  style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                ),
               ),
-              icon: _isLoading
-                  ? SizedBox(
-                width: 20.w,
-                height: 20.w,
-                child: const CircularProgressIndicator(
-                    color: AppColors.white, strokeWidth: 2),
-              )
-                  : const Icon(Icons.directions_car_rounded),
-              label: Text(_isLoading ? 'Publishing...' : 'Offer Ride Now'),
             ),
 
             SizedBox(height: 32.h),
@@ -395,15 +435,15 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
   Widget _buildSectionCard({required String title, required Widget child}) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -413,9 +453,10 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
           Text(
             title,
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: 15.sp,
               fontWeight: FontWeight.bold,
               color: AppColors.textPrimary,
+              letterSpacing: 0.5,
             ),
           ),
           SizedBox(height: 16.h),
@@ -424,6 +465,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
       ),
     );
   }
+
 
   Widget _buildLabel(String text) {
     return Text(

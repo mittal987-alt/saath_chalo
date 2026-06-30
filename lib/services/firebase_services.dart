@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../models/ride_model.dart';
+import '../models/ride_alert_model.dart';
 
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -40,6 +41,42 @@ class FirebaseService {
   // Offer a ride
   Future<void> offerRide(RideModel ride) async {
     await _db.collection('rides').doc(ride.rideId).set(ride.toMap());
+    
+    // Check for ride alerts that match this new ride
+    _checkForMatchingAlerts(ride);
+  }
+
+  Future<void> _checkForMatchingAlerts(RideModel ride) async {
+    // Basic matching logic: same from and to, and rideDate within 1 day
+    final alerts = await _db
+        .collection('ride_alerts')
+        .where('from', isEqualTo: ride.from)
+        .where('to', isEqualTo: ride.to)
+        .get();
+
+    for (var doc in alerts.docs) {
+      final alert = RideAlertModel.fromMap(doc.data());
+      
+      // Don't notify the driver themselves
+      if (alert.uid == ride.driverUid) continue;
+
+      // Check date proximity (within 24 hours)
+      final difference = ride.rideDate.difference(alert.rideDate).inHours.abs();
+      if (difference <= 24) {
+        await sendNotification(
+          toUid: alert.uid,
+          title: 'Ride Match Found! 🚗',
+          body: '${ride.driverName} is driving from ${ride.from} to ${ride.to} on ${ride.rideTime}.',
+          type: 'ride_alert_match',
+          data: {'rideId': ride.rideId},
+        );
+      }
+    }
+  }
+
+  // Create a ride alert
+  Future<void> createRideAlert(RideAlertModel alert) async {
+    await _db.collection('ride_alerts').doc(alert.id).set(alert.toMap());
   }
 
   // Get all active rides
@@ -59,7 +96,8 @@ class FirebaseService {
     return _db
         .collection('rides')
         .where('status', isEqualTo: 'active')
-        .where('from', isGreaterThanOrEqualTo: from)
+        .where('from', isEqualTo: from)
+        .where('to', isEqualTo: to)
         .snapshots()
         .map((snapshot) => snapshot.docs
         .map((doc) => RideModel.fromMap(doc.data()))

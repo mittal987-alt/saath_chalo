@@ -9,6 +9,9 @@ class UserModel {
   final bool isVerified;
   final DateTime createdAt;
 
+  final double totalMoneySaved;
+  final double totalCo2Saved;
+
   UserModel({
     required this.uid,
     required this.name,
@@ -18,6 +21,8 @@ class UserModel {
     this.rating = 5.0,
     this.totalRides = 0,
     this.isVerified = false,
+    this.totalMoneySaved = 0.0,
+    this.totalCo2Saved = 0.0,
     required this.createdAt,
   });
 
@@ -31,6 +36,8 @@ class UserModel {
       'rating': rating,
       'totalRides': totalRides,
       'isVerified': isVerified,
+      'totalMoneySaved': totalMoneySaved,
+      'totalCo2Saved': totalCo2Saved,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -45,6 +52,8 @@ class UserModel {
       rating: (map['rating'] ?? 5.0).toDouble(),
       totalRides: map['totalRides'] ?? 0,
       isVerified: map['isVerified'] ?? false,
+      totalMoneySaved: (map['totalMoneySaved'] ?? 0.0).toDouble(),
+      totalCo2Saved: (map['totalCo2Saved'] ?? 0.0).toDouble(),
       createdAt: DateTime.parse(
           map['createdAt'] ?? DateTime.now().toIso8601String()),
     );

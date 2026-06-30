@@ -50,7 +50,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     final FirebaseService firebaseService = FirebaseService();
 
-    // Save payment to Firestore
+    // 1. Save payment to Firestore
     await _db.collection('payments').add({
       'rideId': widget.rideId,
       'userId': _user?.uid,
@@ -61,12 +61,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // Book seat
+    // 2. Book seat (decrement availableSeats)
     await firebaseService.bookSeat(widget.rideId);
 
-    // Send notification to driver
-    // We need to fetch the driverUid. For now we assume we have it or can get it from ride details.
-    // Ideally we should pass driverUid to PaymentScreen
+    // 3. Update User Stats (Money Saved & CO2 Saved)
+    if (_user != null) {
+      // Logic: 
+      // Money Saved = Fare price (by not taking an individual cab)
+      // CO2 Saved = Approx 0.2kg per km. For now, using a flat 1.5kg per ride.
+      await _db.collection('users').doc(_user!.uid).update({
+        'totalMoneySaved': FieldValue.increment(widget.amount),
+        'totalCo2Saved': FieldValue.increment(1.5),
+        'totalRides': FieldValue.increment(1),
+      });
+    }
+
+    // 4. Send notification to driver
     final rideDoc = await _db.collection('rides').doc(widget.rideId).get();
     final driverUid = rideDoc.data()?['driverUid'];
 
