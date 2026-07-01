@@ -776,10 +776,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildNavItem(4, Icons.inbox_rounded, Icons.inbox_outlined, 'Requests'),
                 _buildNavItem(2, Icons.smart_toy_rounded, Icons.smart_toy_outlined, 'AI'),
                 _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
-                BottomNavigationBarItem(
-                    icon: Icon(Icons.history_rounded),
-                    label: 'My Rides'
-                ),
+                _buildNavItem(5, Icons.history_rounded, Icons.history_outlined, 'My Rides'),
               ],
             ),
           ),
