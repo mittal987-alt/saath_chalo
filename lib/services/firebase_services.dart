@@ -376,6 +376,17 @@ class FirebaseService {
     await _db.collection('rides').doc(rideId).update({'status': status});
   }
 
+  // Get bookings for a specific ride
+  Stream<List<BookingModel>> getBookingsForRide(String rideId, {List<String>? statuses}) {
+    var query = _db.collection('bookings').where('rideId', isEqualTo: rideId);
+    if (statuses != null && statuses.isNotEmpty) {
+      query = query.where('status', whereIn: statuses);
+    }
+    return query.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => BookingModel.fromMap(doc.data() as Map<String, dynamic>))
+        .toList());
+  }
+
   // Book a seat (decrement available seats) - Transaction-safe
   Future<bool> bookSeat(String rideId, int seatsToBook) async {
     try {
@@ -429,6 +440,67 @@ class FirebaseService {
   // ==================
   // SAFETY & SETTINGS
   // ==================
+
+  // Trigger Emergency SOS
+  Future<void> triggerSOS({
+    required String rideId,
+    required double lat,
+    required double lng,
+  }) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final user = await getUser(uid);
+    final settings = await getSafetySettings(uid);
+    final contacts = settings?['emergencyContacts'] as List<dynamic>? ?? [];
+
+    final sosId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    // 1. Save SOS record to Firestore
+    await _db.collection('sos_alerts').doc(sosId).set({
+      'sosId': sosId,
+      'uid': uid,
+      'userName': user?.name ?? 'Unknown',
+      'userPhone': user?.phone ?? '',
+      'rideId': rideId,
+      'location': GeoPoint(lat, lng),
+      'status': 'active',
+      'timestamp': FieldValue.serverTimestamp(),
+      'emergencyContacts': contacts,
+    });
+
+    // 2. Notify Authorities (Mocked as a global notification)
+    await sendNotification(
+      toUid: 'admin_panel', // Mock admin ID
+      title: '🆘 EMERGENCY SOS: ${user?.name}',
+      body: 'User is in danger at ${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}. Ride ID: $rideId',
+      type: 'sos_alert',
+      data: {'sosId': sosId, 'lat': lat, 'lng': lng},
+    );
+
+    // 3. Try to notify contacts if they are registered users
+    for (var contact in contacts) {
+      final phone = contact['phone']?.toString();
+      if (phone != null) {
+        // Search for user with this phone number
+        final contactUserQuery = await _db.collection('users')
+            .where('phone', isEqualTo: phone)
+            .limit(1)
+            .get();
+
+        if (contactUserQuery.docs.isNotEmpty) {
+          final contactUid = contactUserQuery.docs.first.id;
+          await sendNotification(
+            toUid: contactUid,
+            title: '🆘 EMERGENCY: ${user?.name} needs help!',
+            body: '${user?.name} triggered an SOS during their ride. View live location.',
+            type: 'sos_contact_alert',
+            data: {'sosId': sosId, 'victimUid': uid, 'lat': lat, 'lng': lng},
+          );
+        }
+      }
+    }
+  }
 
   // Get safety settings
   Future<Map<String, dynamic>?> getSafetySettings(String uid) async {

@@ -17,6 +17,8 @@ import '../profile/ride_history_screen.dart';
 import '../ai/ai_assistant_screen.dart';
 import '../ride/driver_requests_screen.dart';
 import '../ride/my_bookings_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -25,6 +27,155 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  // Show notification banner at top of home
+  Widget _buildNotificationBanner() {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('toUid', isEqualTo: uid)
+          .where('isRead', isEqualTo: false)
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final doc = snapshot.data!.docs.first;
+        final data = doc.data() as Map<String, dynamic>;
+        final String title = data['title'] ?? '';
+        final String body = data['body'] ?? '';
+
+        return GestureDetector(
+          onTap: () async {
+            // Mark as read on tap
+            await FirebaseFirestore.instance
+                .collection('notifications')
+                .doc(doc.id)
+                .update({'isRead': true});
+          },
+          child: Container(
+            margin: EdgeInsets.symmetric(
+                horizontal: 16.w, vertical: 8.h),
+            padding: EdgeInsets.all(14.w),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(14.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36.w,
+                  height: 36.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.notifications_rounded,
+                      color: AppColors.white, size: 20.sp),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        body,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: AppColors.white.withOpacity(0.85),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                GestureDetector(
+                  onTap: () async {
+                    await FirebaseFirestore.instance
+                        .collection('notifications')
+                        .doc(doc.id)
+                        .update({'isRead': true});
+                  },
+                  child: Icon(Icons.close_rounded,
+                      color: AppColors.white.withOpacity(0.8),
+                      size: 18.sp),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+// Unread notification count for bell icon
+  Widget _buildNotificationBell() {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('toUid', isEqualTo: uid)
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.data?.docs.length ?? 0;
+        return Stack(
+          children: [
+            IconButton(
+              onPressed: () => setState(() => _selectedIndex = 4),
+              icon: const Icon(Icons.notifications_rounded,
+                  color: AppColors.white, size: 26),
+            ),
+            if (count > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  width: 16.w,
+                  height: 16.w,
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      count > 9 ? '9+' : '$count',
+                      style: TextStyle(
+                        fontSize: 9.sp,
+                        color: AppColors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
   int _selectedIndex = 0;
   final User? _user = FirebaseAuth.instance.currentUser;
   UserModel? _userModel;

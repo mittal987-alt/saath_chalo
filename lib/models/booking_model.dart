@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class BookingModel {
   final String bookingId;
   final String rideId;
@@ -13,10 +15,13 @@ class BookingModel {
   final int seatsBooked;
   final double totalPrice;
   final double pricePerSeat;
-  final String status; // pending, confirmed, cancelled, completed
+  final String status; // pending, confirmed, en_route, started, ended, cancelled
   final String paymentStatus; // unpaid, paid
   final String paymentMethod; // Razorpay, Cash
   final DateTime createdAt;
+
+  // Convenience getter so existing code using totalAmount still works
+  double get totalAmount => totalPrice;
 
   BookingModel({
     required this.bookingId,
@@ -35,7 +40,7 @@ class BookingModel {
     required this.pricePerSeat,
     this.status = 'pending',
     this.paymentStatus = 'unpaid',
-    required this.paymentMethod,
+    this.paymentMethod = 'Cash',
     required this.createdAt,
   });
 
@@ -58,7 +63,7 @@ class BookingModel {
       'status': status,
       'paymentStatus': paymentStatus,
       'paymentMethod': paymentMethod,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': FieldValue.serverTimestamp(), // ✅ Always server time
     };
   }
 
@@ -73,7 +78,7 @@ class BookingModel {
       driverName: map['driverName'] ?? '',
       from: map['from'] ?? '',
       to: map['to'] ?? '',
-      rideDate: DateTime.parse(map['rideDate'] ?? DateTime.now().toIso8601String()),
+      rideDate: _parseDate(map['rideDate']),       // ✅ Safe parse
       rideTime: map['rideTime'] ?? '',
       seatsBooked: map['seatsBooked'] ?? 1,
       totalPrice: (map['totalPrice'] ?? 0.0).toDouble(),
@@ -81,7 +86,49 @@ class BookingModel {
       status: map['status'] ?? 'pending',
       paymentStatus: map['paymentStatus'] ?? 'unpaid',
       paymentMethod: map['paymentMethod'] ?? 'Cash',
-      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: _parseDate(map['createdAt']),     // ✅ Safe parse
+    );
+  }
+
+  // ✅ Handles Timestamp (Firestore), String (old data), null
+  static DateTime _parseDate(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is Timestamp) return value.toDate();
+    if (value is String && value.isNotEmpty) {
+      try {
+        return DateTime.parse(value);
+      } catch (_) {
+        return DateTime.now();
+      }
+    }
+    return DateTime.now();
+  }
+
+  // ✅ Easy copy with changes
+  BookingModel copyWith({
+    String? status,
+    String? paymentStatus,
+    String? paymentMethod,
+  }) {
+    return BookingModel(
+      bookingId: bookingId,
+      rideId: rideId,
+      riderUid: riderUid,
+      riderName: riderName,
+      riderPhone: riderPhone,
+      driverUid: driverUid,
+      driverName: driverName,
+      from: from,
+      to: to,
+      rideDate: rideDate,
+      rideTime: rideTime,
+      seatsBooked: seatsBooked,
+      totalPrice: totalPrice,
+      pricePerSeat: pricePerSeat,
+      status: status ?? this.status,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      createdAt: createdAt,
     );
   }
 }

@@ -108,13 +108,20 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> with SingleTicker
           return _buildEmptyState();
         }
 
-        // Sort data locally to prevent index exception crashes if server side indexes aren't complete yet
-        final docs = snapshot.data!.docs;
+        // Sort data safely handling both Timestamp and String types
+        final docs = snapshot.data!.docs.toList();
         docs.sort((a, b) {
-          final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-          final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-          if (aTime == null || bTime == null) return 0;
-          return bTime.compareTo(aTime);
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+
+          DateTime parse(dynamic val) {
+            if (val == null) return DateTime(2000);
+            if (val is Timestamp) return val.toDate();
+            if (val is String) return DateTime.tryParse(val) ?? DateTime(2000);
+            return DateTime(2000);
+          }
+
+          return parse(bData['createdAt']).compareTo(parse(aData['createdAt']));
         });
 
         return ListView.builder(

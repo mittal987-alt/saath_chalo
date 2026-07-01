@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/ride_status.dart';
 import '../../models/booking_model.dart';
@@ -206,7 +207,10 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     }
   }
 
-  void _sendSOS() {
+  void _sendSOS() async {
+    final settings = await FirebaseService().getSafetySettings(FirebaseAuth.instance.currentUser?.uid ?? '');
+    final isHindi = settings?['isHindi'] ?? false;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -217,39 +221,75 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             Icon(Icons.warning_rounded,
                 color: AppColors.error, size: 24.sp),
             SizedBox(width: 8.w),
-            const Text('SOS Alert!'),
+            Text(isHindi ? 'आपातकालीन SOS!' : 'Emergency SOS!'),
           ],
         ),
-        content: const Text(
-            'Send emergency alert with your live location to your emergency contacts?'),
+        content: Text(isHindi 
+            ? 'क्या आप सुनिश्चित हैं कि आप अपने संपर्कों को आपातकालीन अलर्ट भेजना चाहते हैं?' 
+            : 'Send emergency alert with your live location to your emergency contacts?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(isHindi ? 'रद्द करें' : 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              await _db.collection('sos_alerts').add({
-                'uid': FirebaseAuth.instance.currentUser?.uid,
-                'bookingId': widget.booking.bookingId,
-                'rideId': widget.booking.rideId,
-                'lat': _myPosition?.latitude,
-                'lng': _myPosition?.longitude,
-                'timestamp': FieldValue.serverTimestamp(),
-              });
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('🆘 SOS Alert Sent!'),
-                    backgroundColor: AppColors.error,
-                  ),
+              
+              if (_myPosition != null) {
+                // 1. Trigger Firestore SOS logic
+                await FirebaseService().triggerSOS(
+                  rideId: widget.booking.rideId,
+                  lat: _myPosition!.latitude,
+                  lng: _myPosition!.longitude,
                 );
+
+                // 2. Local Actions (Calling/Messaging)
+                if (settings != null) {
+                  // Auto-call emergency services
+                  if (settings['sosAutoCall'] == true) {
+                    final Uri telUri = Uri(scheme: 'tel', path: '112');
+                    if (await canLaunchUrl(telUri)) {
+                      await launchUrl(telUri);
+                    }
+                  }
+
+                  // Auto-message contacts
+                  if (settings['sosAutoMessage'] == true) {
+                    final contacts = settings['emergencyContacts'] as List<dynamic>? ?? [];
+                    for (var contact in contacts) {
+                      final phone = contact['phone'];
+                      if (phone != null) {
+                        final String message = isHindi 
+                            ? 'आपातकालीन! मुझे मदद की ज़रूरत है। मेरी लाइव लोकेशन: https://www.google.com/maps/search/?api=1&query=${_myPosition!.latitude},${_myPosition!.longitude}'
+                            : 'EMERGENCY! I need help. My live location: https://www.google.com/maps/search/?api=1&query=${_myPosition!.latitude},${_myPosition!.longitude}';
+                        
+                        final Uri smsUri = Uri(
+                          scheme: 'sms',
+                          path: phone,
+                          queryParameters: {'body': message},
+                        );
+                        if (await canLaunchUrl(smsUri)) {
+                          await launchUrl(smsUri);
+                        }
+                      }
+                    }
+                  }
+                }
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isHindi ? '🆘 SOS अलर्ट भेज दिया गया है!' : '🆘 SOS Alert Sent!'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error),
-            child: const Text('Send SOS'),
+            child: Text(isHindi ? 'SOS भेजें' : 'Send SOS'),
           ),
         ],
       ),

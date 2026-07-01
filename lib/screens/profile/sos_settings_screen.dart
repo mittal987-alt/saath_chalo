@@ -17,6 +17,7 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
   bool _autoMessage = true;
   bool _detectAccident = false;
   bool _isLoading = true;
+  List<dynamic> _contacts = [];
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
           _autoCall = settings['sosAutoCall'] ?? false;
           _autoMessage = settings['sosAutoMessage'] ?? true;
           _detectAccident = settings['detectAccident'] ?? false;
+          _contacts = settings['emergencyContacts'] ?? [];
           _isLoading = false;
         });
       } else {
@@ -40,10 +42,54 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
     }
   }
 
-  Future<void> _updateSetting(String key, bool value) async {
+  Future<void> _updateSetting(String key, dynamic value) async {
     if (uid != null) {
       await FirebaseService().updateSafetySettings(uid!, {key: value});
     }
+  }
+
+  void _addContact() {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Emergency Contact'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(labelText: 'Phone'),
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty && phoneController.text.isNotEmpty) {
+                setState(() {
+                  _contacts.add({
+                    'name': nameController.text,
+                    'phone': phoneController.text,
+                  });
+                });
+                _updateSetting('emergencyContacts', _contacts);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -64,8 +110,90 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
                 _buildSOSWarning(),
                 SizedBox(height: 24.h),
                 _buildSOSOptions(),
+                SizedBox(height: 24.h),
+                _buildContactsList(),
               ],
             ),
+    );
+  }
+
+  Widget _buildContactsList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Emergency Contacts',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _addContact,
+              icon: Icon(Icons.add, size: 18.sp),
+              label: const Text('Add New'),
+            ),
+          ],
+        ),
+        SizedBox(height: 12.h),
+        if (_contacts.isEmpty)
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20.h),
+              child: Text(
+                'No contacts added yet',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13.sp),
+              ),
+            ),
+          )
+        else
+          ..._contacts.asMap().entries.map((entry) {
+            final index = entry.key;
+            final contact = entry.value;
+            return Container(
+              margin: EdgeInsets.only(bottom: 8.h),
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppColors.error.withValues(alpha: 0.1),
+                    child: Text(
+                      contact['name'][0].toUpperCase(),
+                      style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(contact['name'], style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp)),
+                        Text(contact['phone'], style: TextStyle(color: AppColors.textSecondary, fontSize: 12.sp)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                    onPressed: () {
+                      setState(() {
+                        _contacts.removeAt(index);
+                      });
+                      _updateSetting('emergencyContacts', _contacts);
+                    },
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
     );
   }
 
