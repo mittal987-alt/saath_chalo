@@ -24,6 +24,38 @@ class DriverRequestsScreen extends StatelessWidget {
       body: StreamBuilder<List<BookingModel>>(
         stream: FirebaseService().getDriverRequests(uid),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            debugPrint('Firestore Error: ${snapshot.error}');
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline_rounded,
+                        size: 64.sp, color: AppColors.error),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'Query Failed',
+                      style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'This feature requires a Firestore index. Please check the logs and follow the link to create it.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 14.sp,
+                          color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(

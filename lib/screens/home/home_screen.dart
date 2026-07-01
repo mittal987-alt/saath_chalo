@@ -14,6 +14,7 @@ import 'map_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
 import '../profile/ride_history_screen.dart';
+import '../ride/ride_details_screen.dart';
 import '../ai/ai_assistant_screen.dart';
 import '../ride/driver_requests_screen.dart';
 import '../ride/my_bookings_screen.dart';
@@ -31,30 +32,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNotificationBanner() {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('notifications')
-          .where('toUid', isEqualTo: uid)
-          .where('isRead', isEqualTo: false)
-          .orderBy('timestamp', descending: true)
-          .limit(1)
-          .snapshots(),
+      stream: FirebaseService().getNotifications(uid),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          debugPrint('Notification Stream Error: ${snapshot.error}');
+          return const SizedBox.shrink();
+        }
+        
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox.shrink();
         }
 
-        final doc = snapshot.data!.docs.first;
+        // Get the latest unread notification
+        final unreadDocs = snapshot.data!.docs.where((d) => (d.data() as Map<String, dynamic>)['isRead'] == false).toList();
+        
+        if (unreadDocs.isEmpty) return const SizedBox.shrink();
+
+        final doc = unreadDocs.first;
         final data = doc.data() as Map<String, dynamic>;
-        final String title = data['title'] ?? '';
+        final String title = data['title'] ?? 'Notification';
         final String body = data['body'] ?? '';
 
         return GestureDetector(
           onTap: () async {
-            // Mark as read on tap
-            await FirebaseFirestore.instance
-                .collection('notifications')
-                .doc(doc.id)
-                .update({'isRead': true});
+            await FirebaseService().markNotificationRead(doc.id);
           },
           child: Container(
             margin: EdgeInsets.symmetric(
@@ -113,10 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(width: 8.w),
                 GestureDetector(
                   onTap: () async {
-                    await FirebaseFirestore.instance
-                        .collection('notifications')
-                        .doc(doc.id)
-                        .update({'isRead': true});
+                    await FirebaseService().markNotificationRead(doc.id);
                   },
                   child: Icon(Icons.close_rounded,
                       color: AppColors.white.withOpacity(0.8),
@@ -134,13 +132,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNotificationBell() {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('notifications')
-          .where('toUid', isEqualTo: uid)
-          .where('isRead', isEqualTo: false)
-          .snapshots(),
+      stream: FirebaseService().getNotifications(uid),
       builder: (context, snapshot) {
-        final count = snapshot.data?.docs.length ?? 0;
+        if (snapshot.hasError) return const Icon(Icons.notifications_rounded, color: AppColors.white, size: 26);
+        
+        final unreadCount = snapshot.data?.docs.where((d) => (d.data() as Map<String, dynamic>)['isRead'] == false).length ?? 0;
+        
         return Stack(
           children: [
             IconButton(
@@ -148,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.notifications_rounded,
                   color: AppColors.white, size: 26),
             ),
-            if (count > 0)
+            if (unreadCount > 0)
               Positioned(
                 right: 6,
                 top: 6,
@@ -161,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      count > 9 ? '9+' : '$count',
+                      unreadCount > 9 ? '9+' : '$unreadCount',
                       style: TextStyle(
                         fontSize: 9.sp,
                         color: AppColors.white,
@@ -277,6 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
+              _buildNotificationBanner(),
               _buildQuickActions(),
               _buildMapPreview(),
               _buildRecentRides(),
@@ -346,54 +344,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Row(
                 children: [
-                  // Map Action
-                  _buildHeaderRoundButton(
-                    icon: Icons.map_outlined,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const MapScreen()),
-                    ),
+                  // Map button
+                  IconButton(
+                    onPressed: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const MapScreen())),
+                    icon: const Icon(Icons.map_rounded,
+                        color: AppColors.white, size: 26),
                   ),
-                  SizedBox(width: 10.w),
-
-                  // Refactored Chat Icon Header Badge
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      _buildHeaderRoundButton(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        onTap: () => setState(() => _selectedIndex = 1),
-                      ),
-                      if (_unreadChatCount > 0)
-                        Positioned(
-                          right: -2.w,
-                          top: -2.h,
-                          child: Container(
-                            padding: EdgeInsets.all(4.w),
-                            decoration: const BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: BoxConstraints(
-                              minWidth: 16.w,
-                              minHeight: 16.w,
-                            ),
-                            child: Text(
-                              '$_unreadChatCount',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 9.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(width: 10.w),
-
-                  // Profile Trigger
+                  // 🔔 Notification bell with badge
+                  _buildNotificationBell(),
+                  // Avatar
                   GestureDetector(
                     onTap: () => setState(() => _selectedIndex = 3),
                     child: Container(
@@ -737,7 +697,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               SizedBox(height: 4.h),
-              ...rides.take(3).map((ride) => _buildRideCard(ride)),
+              ...rides.take(3).map((ride) => GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RideDetailScreen(ride: ride),
+                      ),
+                    );
+                  },
+                  child: _buildRideCard(ride))),
             ],
           ),
         );

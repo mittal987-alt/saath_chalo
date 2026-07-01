@@ -615,26 +615,33 @@ class _LiveRideCardState extends State<_LiveRideCard> {
       ) async {
     setState(() => _isRequesting = true);
     try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      print('DEBUG: Current UID = ${user?.uid}');
+      print('DEBUG: Current Name = ${user?.displayName}');
       final bookingId =
       DateTime.now().millisecondsSinceEpoch.toString();
+
+
       final booking = BookingModel(
         bookingId: bookingId,
         rideId: widget.rideId,
-        riderUid: widget.currentUserUid,
-        riderName: widget.currentUserName,
-        riderPhone: widget.currentUserPhone,
+        riderUid: user?.uid ?? '',        // ✅ Must match logged in user
+        riderName: user?.displayName ?? 'Rider',
+        riderPhone: user?.phoneNumber ?? '',
         driverUid: driverUid,
         driverName: driverName,
         from: from,
         to: to,
-        rideDate: widget.data['rideDate'] != null ? (widget.data['rideDate'] is Timestamp ? (widget.data['rideDate'] as Timestamp).toDate() : DateTime.parse(widget.data['rideDate'])) : DateTime.now(),
-        rideTime: widget.data['rideTime'] ?? '',
+        rideDate: DateTime.now(),         // ✅ Add rideDate
+        rideTime: '',
         seatsBooked: _seatsToBook,
+        totalPrice: totalAmount,          // ✅ Use totalPrice not totalAmount
         pricePerSeat: pricePerSeat,
-        totalPrice: totalAmount,
-        paymentMethod: 'Cash', // Default for now
+        paymentMethod: 'Razorpay',
         createdAt: DateTime.now(),
       );
+
 
       await FirebaseService().createBookingRequest(booking);
       setState(() => _isRequesting = false);

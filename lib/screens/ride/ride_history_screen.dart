@@ -113,11 +113,13 @@ class _RideHistoryScreenState extends State<RideHistoryScreen>
   // TAB 2 — Rides I booked as rider
   // ─────────────────────────────────────────────
   Widget _buildBookedRides() {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
     return StreamBuilder<QuerySnapshot>(
+      // ✅ No orderBy — removes index requirement
       stream: FirebaseFirestore.instance
           .collection('bookings')
-          .where('riderUid', isEqualTo: _uid)
-          .orderBy('createdAt', descending: true)
+          .where('riderUid', isEqualTo: uid)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -127,18 +129,55 @@ class _RideHistoryScreenState extends State<RideHistoryScreen>
         }
 
         if (snapshot.hasError) {
-          return _buildErrorState(snapshot.error.toString());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState(
-            icon: Icons.search_off_rounded,
-            title: 'No rides booked yet!',
-            subtitle: 'Rides you book will appear here.',
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: TextStyle(color: AppColors.error, fontSize: 12.sp),
+              ),
+            ),
           );
         }
 
-        final bookings = snapshot.data!.docs.map((doc) {
+        // ✅ Debug - show raw count
+        final docs = snapshot.data?.docs ?? [];
+
+        if (docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history_rounded,
+                    size: 64.sp, color: AppColors.border),
+                SizedBox(height: 16.h),
+                Text(
+                  'No rides found!',
+                  style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary),
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  'Your ride history records will appear here.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 14.sp, color: AppColors.textSecondary),
+                ),
+                SizedBox(height: 24.h),
+                // Debug info
+                Text(
+                  'Debug: UID = $uid',
+                  style: TextStyle(
+                      fontSize: 10.sp, color: AppColors.textHint),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final bookings = docs.map((doc) {
           return BookingModel.fromMap(
               doc.data() as Map<String, dynamic>);
         }).toList();

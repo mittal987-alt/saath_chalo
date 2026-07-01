@@ -24,17 +24,20 @@ class FirebaseService {
 
 // Create a booking request (rider requests a ride - status: pending)
   Future<String> createBookingRequest(BookingModel booking) async {
+    // ✅ Use set with merge to avoid overwriting
     await _db
         .collection('bookings')
         .doc(booking.bookingId)
         .set(booking.toMap());
 
-    // Notify the driver
+    print('DEBUG: Booking saved with ID ${booking.bookingId}');
+    print('DEBUG: riderUid = ${booking.riderUid}');
+
+    // Notify driver
     await sendNotification(
       toUid: booking.driverUid,
       title: 'New Ride Request! 🚗',
-      body:
-      '${booking.riderName} wants ${booking.seatsBooked} seat(s) for ${booking.from} → ${booking.to}',
+      body: '${booking.riderName} wants ${booking.seatsBooked} seat(s)',
       data: {'type': 'ride_request', 'bookingId': booking.bookingId},
     );
 
@@ -72,61 +75,69 @@ class FirebaseService {
       String bookingId, String rideId, int seatsRequested) async {
     try {
       final result = await _db.runTransaction<Map<String, dynamic>>(
-              (transaction) async {
-            final rideRef = _db.collection('rides').doc(rideId);
-            final rideSnap = await transaction.get(rideRef);
+            (transaction) async {
+          final rideRef = _db.collection('rides').doc(rideId);
+          final bookingRef = _db.collection('bookings').doc(bookingId);
 
-            if (!rideSnap.exists) {
-              return {'success': false, 'message': 'Ride no longer exists!'};
-            }
+          final rideSnap = await transaction.get(rideRef);
+          final bookingSnap = await transaction.get(bookingRef);
 
-            final rideData = rideSnap.data()!;
-            final int currentSeats = rideData['availableSeats'] ?? 0;
+          if (!rideSnap.exists) {
+            return {'success': false, 'message': 'Ride not found!'};
+          }
 
-            if (currentSeats < seatsRequested) {
-              return {
-                'success': false,
-                'message':
-                'Not enough seats left! Only $currentSeats seat(s) available.'
-              };
-            }
+          final int currentSeats =
+              rideSnap.data()!['availableSeats'] ?? 0;
 
-            final int newSeats = currentSeats - seatsRequested;
-
-            // Update ride seats (and mark full if 0 left)
-            transaction.update(rideRef, {
-              'availableSeats': newSeats,
-              if (newSeats == 0) 'status': 'full',
-            });
-
-            // Update booking status
-            final bookingRef = _db.collection('bookings').doc(bookingId);
-            transaction.update(bookingRef, {'status': 'accepted'});
-
+          if (currentSeats < seatsRequested) {
             return {
-              'success': true,
-              'message': 'Booking accepted!',
-              'remainingSeats': newSeats,
+              'success': false,
+              'message': 'Only $currentSeats seat(s) left!'
             };
+          }
+
+          final int newSeats = currentSeats - seatsRequested;
+
+          // ✅ Update ride seats
+          transaction.update(rideRef, {
+            'availableSeats': newSeats,
+            if (newSeats == 0) 'status': 'full',
           });
 
-      // Notify rider after transaction succeeds
+          // ✅ Update booking to confirmed
+          transaction.update(bookingRef, {
+            'status': 'confirmed', // ✅ Must be 'confirmed'
+          });
+
+          return {
+            'success': true,
+            'message': 'Booking accepted!',
+            'remainingSeats': newSeats,
+          };
+        },
+      );
+
       if (result['success'] == true) {
         final bookingDoc =
         await _db.collection('bookings').doc(bookingId).get();
-        final booking = BookingModel.fromMap(bookingDoc.data()!);
-
-        await sendNotification(
-          toUid: booking.riderUid,
-          title: 'Ride Accepted! ✅',
-          body:
-          '${booking.driverName} accepted your request for ${booking.from} → ${booking.to}',
-          data: {'type': 'ride_accepted', 'bookingId': bookingId},
-        );
+        if (bookingDoc.exists) {
+          final booking =
+          BookingModel.fromMap(bookingDoc.data()!);
+          await sendNotification(
+            toUid: booking.riderUid,
+            title: 'Ride Accepted! ✅',
+            body: '${booking.driverName} accepted your request!',
+            data: {
+              'type': 'ride_accepted',
+              'bookingId': bookingId
+            },
+          );
+        }
       }
 
       return result;
     } catch (e) {
+      print('DEBUG: Accept error = $e');
       return {'success': false, 'message': 'Error: $e'};
     }
   }
@@ -350,6 +361,7 @@ class FirebaseService {
 
     await batch.commit();
   }
+
 
   // Send notification to a user
   Future<void> sendNotification({

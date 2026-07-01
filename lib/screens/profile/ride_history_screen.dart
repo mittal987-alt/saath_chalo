@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/ride_model.dart';
+import '../ride/ride_details_screen.dart';
 
 class RideHistoryScreen extends StatefulWidget {
   const RideHistoryScreen({super.key});
@@ -310,15 +311,25 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> with SingleTicker
                 style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary, fontWeight: FontWeight.w400),
               ),
               const Spacer(),
-              Row(
-                children: [
-                  Text(
-                    'View Details',
-                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
-                  ),
-                  SizedBox(width: 2.w),
-                  Icon(Icons.arrow_forward_ios_rounded, size: 10.sp, color: AppColors.primary),
-                ],
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RideDetailScreen(ride: ride),
+                    ),
+                  );
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      'View Details',
+                      style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                    SizedBox(width: 2.w),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 10.sp, color: AppColors.primary),
+                  ],
+                ),
               ),
             ],
           ),
