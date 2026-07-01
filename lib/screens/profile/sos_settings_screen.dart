@@ -183,7 +183,7 @@ class _SosSettingsScreenState extends State<SosSettingsScreen> {
         ),
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.error,
+        activeThumbColor: AppColors.error,
       ),
     );
   }

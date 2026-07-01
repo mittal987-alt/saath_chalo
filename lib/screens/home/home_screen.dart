@@ -15,7 +15,8 @@ import '../chat/chat_list_screen.dart';
 import '../profile/profile_screen.dart';
 import '../profile/ride_history_screen.dart';
 import '../ai/ai_assistant_screen.dart';
-
+import '../ride/driver_requests_screen.dart';
+import '../ride/my_bookings_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -139,6 +140,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return const AIAssistantScreen();
       case 3:
         return const ProfileScreen();
+      case 4:
+        return const DriverRequestsScreen();
+      case 5:
+        return const MyBookingsScreen();
       default:
         return const SizedBox();
     }
@@ -742,10 +747,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Modern Floating Navigation Bar Implementation
-  // Modern Floating Navigation Bar Implementation
   Widget _buildBottomNav() {
     return Align(
-      alignment: const Alignment(0, 0.94), // Moved inside the Align widget properly
+      alignment: const Alignment(0, 0.94),
       child: Container(
         margin: EdgeInsets.fromLTRB(24.w, 0, 24.w, 20.h),
         height: 64.h,
@@ -769,8 +773,13 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
                 _buildNavItem(1, Icons.chat_bubble_rounded, Icons.chat_bubble_outline_rounded, 'Chat'),
+                _buildNavItem(4, Icons.inbox_rounded, Icons.inbox_outlined, 'Requests'),
                 _buildNavItem(2, Icons.smart_toy_rounded, Icons.smart_toy_outlined, 'AI'),
                 _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.history_rounded),
+                    label: 'My Rides'
+                ),
               ],
             ),
           ),

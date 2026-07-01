@@ -13,8 +13,9 @@ class PaymentScreen extends StatefulWidget {
   final String driverName;
   final String from;
   final String to;
-  final double pricePerSeat;
+  final double amount;
   final int seats;
+  final double pricePerSeat;
 
   const PaymentScreen({
     super.key,
@@ -22,8 +23,9 @@ class PaymentScreen extends StatefulWidget {
     required this.driverName,
     required this.from,
     required this.to,
-    required this.pricePerSeat,
-    required this.seats,
+    required this.amount,
+    this.seats = 1,
+    this.pricePerSeat = 0,
   });
 
   @override
@@ -37,7 +39,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final User? _user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  double get totalAmount => widget.pricePerSeat * widget.seats;
+  double get totalAmount => widget.amount;
+  double get platformFee => totalAmount * 0.05;
+  double get finalTotal => totalAmount + platformFee;
 
   @override 
   void initState() {
@@ -60,21 +64,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'userId': _user?.uid,
       'paymentId': response.paymentId,
       'orderId': response.orderId,
-      'amount': totalAmount,
+      'amount': finalTotal,
       'status': 'success',
       'method': 'online',
       'timestamp': FieldValue.serverTimestamp(),
     });
 
     // 2. Book seat (decrement availableSeats)
-    for (int i = 0; i < widget.seats; i++) {
-      await firebaseService.bookSeat(widget.rideId);
-    }
+    await firebaseService.bookSeat(widget.rideId, widget.seats);
 
     // 3. Update User Stats (Money Saved & CO2 Saved)
     if (_user != null) {
       await _db.collection('users').doc(_user!.uid).update({
-        'totalMoneySaved': FieldValue.increment(totalAmount),
+        'totalMoneySaved': FieldValue.increment(finalTotal),
         'totalCo2Saved': FieldValue.increment(1.5 * widget.seats),
         'totalRides': FieldValue.increment(1),
       });
@@ -88,7 +90,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       await firebaseService.sendNotification(
         toUid: driverUid,
         title: 'Payment Received! 💰',
-        body: '${_user?.displayName ?? 'A rider'} paid ₹${totalAmount.toStringAsFixed(0)} for ${widget.seats} seat(s).',
+        body: '${_user?.displayName ?? 'A rider'} paid ₹${finalTotal.toStringAsFixed(0)} for ${widget.seats} seat(s).',
         type: 'payment',
         data: {'rideId': widget.rideId},
       );
@@ -118,7 +120,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               SizedBox(height: 8.h),
               Text(
-                '₹${totalAmount.toStringAsFixed(0)} paid successfully!',
+                '₹${finalTotal.toStringAsFixed(0)} paid successfully!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14.sp,
@@ -165,21 +167,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
       await _db.collection('payments').add({
         'rideId': widget.rideId,
         'userId': _user?.uid,
-        'amount': totalAmount,
+        'amount': finalTotal,
         'status': 'pending_cash',
         'method': 'cash',
         'timestamp': FieldValue.serverTimestamp(),
       });
 
       // 2. Book seats
-      for (int i = 0; i < widget.seats; i++) {
-        await firebaseService.bookSeat(widget.rideId);
-      }
+      await firebaseService.bookSeat(widget.rideId, widget.seats);
 
       // 3. Update User Stats
       if (_user != null) {
         await _db.collection('users').doc(_user!.uid).update({
-          'totalMoneySaved': FieldValue.increment(totalAmount),
+          'totalMoneySaved': FieldValue.increment(finalTotal),
           'totalCo2Saved': FieldValue.increment(1.5 * widget.seats),
           'totalRides': FieldValue.increment(1),
         });
@@ -192,7 +192,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         await firebaseService.sendNotification(
           toUid: driverUid,
           title: 'New Cash Booking! 💵',
-          body: '${_user?.displayName ?? 'A rider'} booked ${widget.seats} seat(s). Please collect ₹${totalAmount.toStringAsFixed(0)} at the end of the ride.',
+          body: '${_user?.displayName ?? 'A rider'} booked ${widget.seats} seat(s). Please collect ₹${finalTotal.toStringAsFixed(0)} at the end of the ride.',
           type: 'payment_cash',
           data: {'rideId': widget.rideId},
         );
@@ -215,7 +215,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 SizedBox(height: 8.h),
                 Text('You have chosen to pay by Cash.', textAlign: TextAlign.center),
                 SizedBox(height: 12.h),
-                Text('Total to pay: ₹${totalAmount.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                Text('Total to pay: ₹${finalTotal.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
                 SizedBox(height: 24.h),
                 ElevatedButton(
                   onPressed: () {
@@ -270,7 +270,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     var options = {
       'key': Secrets.razorpayKey,
-      'amount': (totalAmount * 100).toInt(), // Amount in paise
+      'amount': (finalTotal * 100).toInt(), // Amount in paise
       'name': 'SaathChalo',
       'description': '${widget.from} → ${widget.to} (${widget.seats} seats)',
       'prefill': {
@@ -350,7 +350,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 _isLoading
                     ? 'Processing...'
                     : _selectedMethod == 'razorpay'
-                    ? 'Pay ₹${totalAmount.toStringAsFixed(0)}'
+                    ? 'Pay ₹${finalTotal.toStringAsFixed(0)}'
                     : 'Confirm Cash Booking',
                 style: TextStyle(
                     fontSize: 18.sp, fontWeight: FontWeight.bold),
@@ -482,6 +482,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildPriceBreakdown() {
+    // ✅ 5% platform fee on top of total
     final double subtotal = totalAmount;
     final double platformFee = subtotal * 0.05;
     final double total = subtotal + platformFee;
@@ -501,24 +502,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Price Breakdown',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          Text('Price Breakdown',
+              style: TextStyle(
+                  fontSize: 16.sp, fontWeight: FontWeight.bold)),
           SizedBox(height: 16.h),
-          _buildPriceRow('Fare (₹${widget.pricePerSeat.toStringAsFixed(0)} × ${widget.seats})', '₹${subtotal.toStringAsFixed(0)}'),
-          SizedBox(height: 8.h),
           _buildPriceRow(
-              'Platform Fee (5%)', '₹${platformFee.toStringAsFixed(0)}'),
+              'Ride Fare (${widget.seats} seat${widget.seats > 1 ? 's' : ''} × ₹${widget.pricePerSeat.toStringAsFixed(0)})',
+              '₹${subtotal.toStringAsFixed(0)}'),
+          SizedBox(height: 8.h),
+          _buildPriceRow('Platform Fee (5%)',
+              '₹${platformFee.toStringAsFixed(0)}'),
           SizedBox(height: 8.h),
           Divider(color: AppColors.divider),
           SizedBox(height: 8.h),
           _buildPriceRow(
-            'Total Amount',
+            'Total',
             '₹${total.toStringAsFixed(0)}',
             isTotal: true,
           ),

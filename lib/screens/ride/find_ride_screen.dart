@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/firebase_services.dart';
-import '../../models/ride_model.dart';
-import '../../models/ride_alert_model.dart';
 import '../../core/constants/app_colors.dart';
-import '../payment/payment_screen.dart';
-import 'live_tracking_screen.dart';
-import '../rating/rating_screen.dart';
-import 'package:uuid/uuid.dart';
+import '../../models/booking_model.dart';
+import '../../services/firebase_services.dart';
 
 class FindRideScreen extends StatefulWidget {
   const FindRideScreen({super.key});
@@ -20,12 +16,9 @@ class FindRideScreen extends StatefulWidget {
 class _FindRideScreenState extends State<FindRideScreen> {
   final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
-  DateTime _selectedDate = DateTime.now();
-  int _seats = 1;
   bool _showResults = false;
-
-  // ✅ Real data from Firebase
-  Stream<List<RideModel>>? _ridesStream;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final User? _user = FirebaseAuth.instance.currentUser;
 
   void _searchRides() {
     if (_fromController.text.isEmpty || _toController.text.isEmpty) {
@@ -34,37 +27,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
       );
       return;
     }
-    setState(() {
-      _showResults = true;
-      _ridesStream = FirebaseService().searchRides(
-        _fromController.text,
-        _toController.text,
-      );
-    });
-  }
-
-  Future<void> _setRideAlert() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    final alert = RideAlertModel(
-      id: const Uuid().v4(),
-      uid: uid,
-      from: _fromController.text,
-      to: _toController.text,
-      rideDate: _selectedDate,
-      createdAt: DateTime.now(),
-    );
-
-    await FirebaseService().createRideAlert(alert);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ride alert set! We will notify you when a match is found.'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
+    setState(() => _showResults = true);
   }
 
   @override
@@ -88,7 +51,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
         child: Column(
           children: [
             _buildSearchCard(),
-            if (_showResults) _buildRideResults(),
+            if (_showResults) _buildLiveRideResults(),
           ],
         ),
       ),
@@ -104,7 +67,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -123,13 +86,11 @@ class _FindRideScreenState extends State<FindRideScreen> {
             controller: _fromController,
             decoration: InputDecoration(
               hintText: 'Starting location',
-              prefixIcon:
-              Icon(Icons.circle, color: AppColors.primary, size: 14.sp),
+              prefixIcon: Icon(Icons.circle,
+                  color: AppColors.primary, size: 14.sp),
             ),
           ),
-
           SizedBox(height: 8.h),
-
           Center(
             child: GestureDetector(
               onTap: () {
@@ -140,7 +101,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
               child: Container(
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.swap_vert_rounded,
@@ -148,9 +109,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
               ),
             ),
           ),
-
           SizedBox(height: 8.h),
-
           Text('To',
               style: TextStyle(
                   fontSize: 13.sp,
@@ -165,91 +124,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
                   color: AppColors.secondary, size: 20.sp),
             ),
           ),
-
-          SizedBox(height: 16.h),
-
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime.now(),
-                      lastDate:
-                      DateTime.now().add(const Duration(days: 30)),
-                    );
-                    if (date != null) setState(() => _selectedDate = date);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(12.w),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.calendar_today_rounded,
-                            color: AppColors.primary, size: 18.sp),
-                        SizedBox(width: 8.w),
-                        Text(
-                          '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                          style: TextStyle(fontSize: 13.sp),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              SizedBox(width: 12.w),
-
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 12.w, vertical: 8.h),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          if (_seats > 1) setState(() => _seats--);
-                        },
-                        child: const Icon(Icons.remove_circle_outline,
-                            color: AppColors.primary),
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.event_seat_rounded,
-                              color: AppColors.primary, size: 16.sp),
-                          SizedBox(width: 4.w),
-                          Text('$_seats',
-                              style: TextStyle(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          if (_seats < 4) setState(() => _seats++);
-                        },
-                        child: const Icon(Icons.add_circle_outline,
-                            color: AppColors.primary),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-
           SizedBox(height: 20.h),
-
           ElevatedButton.icon(
             onPressed: _searchRides,
             icon: const Icon(Icons.search_rounded),
@@ -260,64 +135,85 @@ class _FindRideScreenState extends State<FindRideScreen> {
     );
   }
 
-  Widget _buildRideResults() {
-    return StreamBuilder<List<RideModel>>(
-      stream: _ridesStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Padding(
-            padding: EdgeInsets.all(20.w),
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red, size: 48.sp),
-                  SizedBox(height: 12.h),
-                  const Text(
-                    'Setting up search index...',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8.h),
-                  const Text(
-                    'Please click the link in the console to create the required Firestore index.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                ],
+  Widget _buildLiveRideResults() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: StreamBuilder<QuerySnapshot>(
+        stream: _db
+            .collection('rides')
+            .where('status', isEqualTo: 'active')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 40.h),
+              child: const Center(
+                child: CircularProgressIndicator(
+                    color: AppColors.primary),
               ),
-            ),
-          );
-        }
-        final rides = snapshot.data ?? [];
-        if (rides.isEmpty) {
-          return Padding(
-            padding: EdgeInsets.all(20.w),
-            child: Column(
-              children: [
-                const Center(child: Text('No rides found for this route')),
-                SizedBox(height: 16.h),
-                ElevatedButton.icon(
-                  onPressed: _setRideAlert,
-                  icon: const Icon(Icons.notifications_active_outlined),
-                  label: const Text('Notify me when available'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+            );
+          }
 
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
-          child: Column(
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 40.h),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.search_off_rounded,
+                        size: 56.sp, color: AppColors.border),
+                    SizedBox(height: 12.h),
+                    Text('No rides available right now!',
+                        style: TextStyle(
+                            fontSize: 14.sp,
+                            color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final fromQuery =
+          _fromController.text.toLowerCase().trim();
+          final toQuery = _toController.text.toLowerCase().trim();
+
+          final docs = snapshot.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final from =
+            (data['from'] ?? '').toString().toLowerCase();
+            final to = (data['to'] ?? '').toString().toLowerCase();
+            final seats = data['availableSeats'] ?? 0;
+            final matchFrom =
+                fromQuery.isEmpty || from.contains(fromQuery);
+            final matchTo =
+                toQuery.isEmpty || to.contains(toQuery);
+            // Don't show user their own rides
+            final notOwn =
+                data['driverUid'] != _user?.uid;
+            return seats > 0 && matchFrom && matchTo && notOwn;
+          }).toList();
+
+          if (docs.isEmpty) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 40.h),
+              child: Center(
+                child: Text(
+                  'No matching rides for this route!\nTry different locations.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppColors.textSecondary),
+                ),
+              ),
+            );
+          }
+
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${rides.length} Rides Found',
+                '${docs.length} Rides Found',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
@@ -325,8 +221,383 @@ class _FindRideScreenState extends State<FindRideScreen> {
                 ),
               ),
               SizedBox(height: 12.h),
-              ...rides.map((ride) => _buildRideCard(ride)),
+              ...docs.map((doc) {
+                final data =
+                doc.data() as Map<String, dynamic>;
+                return _LiveRideCard(
+                  rideId: doc.id,
+                  data: data,
+                  currentUserUid: _user?.uid ?? '',
+                  currentUserName:
+                  _user?.displayName ?? 'Rider',
+                  currentUserPhone:
+                  _user?.phoneNumber ?? '',
+                );
+              }),
               SizedBox(height: 20.h),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Individual ride card — has its own live stream
+// so seat count updates without rebuilding list
+// ─────────────────────────────────────────────
+class _LiveRideCard extends StatefulWidget {
+  final String rideId;
+  final Map<String, dynamic> data;
+  final String currentUserUid;
+  final String currentUserName;
+  final String currentUserPhone;
+
+  const _LiveRideCard({
+    required this.rideId,
+    required this.data,
+    required this.currentUserUid,
+    required this.currentUserName,
+    required this.currentUserPhone,
+  });
+
+  @override
+  State<_LiveRideCard> createState() => _LiveRideCardState();
+}
+
+class _LiveRideCardState extends State<_LiveRideCard> {
+  int _seatsToBook = 1;
+  bool _isRequesting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('rides')
+          .doc(widget.rideId)
+          .snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData || !snap.data!.exists) {
+          return const SizedBox.shrink();
+        }
+
+        final d = snap.data!.data() as Map<String, dynamic>;
+        final int availableSeats = d['availableSeats'] ?? 0;
+        final double pricePerSeat =
+        (d['pricePerSeat'] ?? 0).toDouble();
+        final String driverName = d['driverName'] ?? 'Driver';
+        final String driverUid = d['driverUid'] ?? '';
+        final String from = d['from'] ?? '';
+        final String to = d['to'] ?? '';
+        final String vehicle = d['vehicle'] ?? '';
+        final String rideTime = d['rideTime'] ?? '';
+        final double driverRating =
+        (d['driverRating'] ?? 5.0).toDouble();
+
+        if (availableSeats <= 0) return const SizedBox.shrink();
+
+        // Clamp selector if seats reduced live
+        if (_seatsToBook > availableSeats) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _seatsToBook = availableSeats);
+          });
+        }
+
+        final double totalAmount = pricePerSeat * _seatsToBook;
+
+        return Container(
+          margin: EdgeInsets.only(bottom: 16.h),
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Driver row
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22.r,
+                    backgroundColor:
+                    AppColors.primary.withOpacity(0.1),
+                    child: Icon(Icons.person_rounded,
+                        color: AppColors.primary, size: 26.sp),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(driverName,
+                            style: TextStyle(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary)),
+                        Row(
+                          children: [
+                            Icon(Icons.star_rounded,
+                                color: Colors.amber, size: 14.sp),
+                            SizedBox(width: 2.w),
+                            Text(driverRating.toStringAsFixed(1),
+                                style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: AppColors.textSecondary)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '₹${pricePerSeat.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      Text('per seat',
+                          style: TextStyle(
+                              fontSize: 11.sp,
+                              color: AppColors.textSecondary)),
+                    ],
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 16.h),
+              Divider(color: AppColors.divider, height: 1),
+              SizedBox(height: 16.h),
+
+              // Route
+              Row(
+                children: [
+                  Column(
+                    children: [
+                      Icon(Icons.circle,
+                          color: AppColors.primary, size: 10.sp),
+                      Container(
+                          width: 1.5,
+                          height: 24.h,
+                          color: AppColors.border),
+                      Icon(Icons.location_on,
+                          color: AppColors.secondary, size: 14.sp),
+                    ],
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(from,
+                            style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary)),
+                        SizedBox(height: 16.h),
+                        Text(to,
+                            style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary)),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(rideTime,
+                          style: TextStyle(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary)),
+                      SizedBox(height: 16.h),
+
+                      // ✅ Live seat badge — updates instantly!
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 8.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: availableSeats <= 1
+                              ? AppColors.error.withOpacity(0.1)
+                              : AppColors.success.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.event_seat_rounded,
+                                size: 12.sp,
+                                color: availableSeats <= 1
+                                    ? AppColors.error
+                                    : AppColors.success),
+                            SizedBox(width: 4.w),
+                            Text(
+                              '$availableSeats left',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w600,
+                                color: availableSeats <= 1
+                                    ? AppColors.error
+                                    : AppColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              SizedBox(height: 12.h),
+
+              // Vehicle chip
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 12.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.directions_car_rounded,
+                        size: 16.sp,
+                        color: AppColors.textSecondary),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(vehicle,
+                          style: TextStyle(
+                              fontSize: 12.sp,
+                              color: AppColors.textSecondary)),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 16.h),
+
+              // ✅ Seat selector — clamped to availableSeats
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 12.w, vertical: 10.h),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Seats to book',
+                        style: TextStyle(
+                            fontSize: 13.sp,
+                            color: AppColors.textSecondary)),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _seatsToBook > 1
+                              ? () =>
+                              setState(() => _seatsToBook--)
+                              : null,
+                          child: Icon(Icons.remove_circle_outline,
+                              color: _seatsToBook > 1
+                                  ? AppColors.primary
+                                  : AppColors.border,
+                              size: 28.sp),
+                        ),
+                        SizedBox(width: 16.w),
+                        Text('$_seatsToBook',
+                            style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
+                        SizedBox(width: 16.w),
+                        GestureDetector(
+                          onTap: _seatsToBook < availableSeats
+                              ? () =>
+                              setState(() => _seatsToBook++)
+                              : null,
+                          child: Icon(Icons.add_circle_outline,
+                              color: _seatsToBook < availableSeats
+                                  ? AppColors.primary
+                                  : AppColors.border,
+                              size: 28.sp),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 12.h),
+
+              // ✅ Total amount — always accurate
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 14.w, vertical: 10.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                      color: AppColors.primary.withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '$_seatsToBook seat${_seatsToBook > 1 ? 's' : ''} × ₹${pricePerSeat.toStringAsFixed(0)}',
+                      style: TextStyle(
+                          fontSize: 13.sp,
+                          color: AppColors.textSecondary),
+                    ),
+                    Text(
+                      '₹${totalAmount.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(height: 12.h),
+
+              // Request button
+              ElevatedButton(
+                onPressed: _isRequesting
+                    ? null
+                    : () => _sendBookingRequest(
+                  driverUid,
+                  driverName,
+                  from,
+                  to,
+                  pricePerSeat,
+                  totalAmount,
+                ),
+                child: _isRequesting
+                    ? SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: const CircularProgressIndicator(
+                      color: AppColors.white,
+                      strokeWidth: 2),
+                )
+                    : Text(
+                    'Request $_seatsToBook Seat${_seatsToBook > 1 ? 's' : ''}'),
+              ),
             ],
           ),
         );
@@ -334,319 +605,108 @@ class _FindRideScreenState extends State<FindRideScreen> {
     );
   }
 
-  Widget _buildRideCard(RideModel ride) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(24.r), // Premium rounded corners
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
+  Future<void> _sendBookingRequest(
+      String driverUid,
+      String driverName,
+      String from,
+      String to,
+      double pricePerSeat,
+      double totalAmount,
+      ) async {
+    setState(() => _isRequesting = true);
+    try {
+      final bookingId =
+      DateTime.now().millisecondsSinceEpoch.toString();
+      final booking = BookingModel(
+        bookingId: bookingId,
+        rideId: widget.rideId,
+        riderUid: widget.currentUserUid,
+        riderName: widget.currentUserName,
+        riderPhone: widget.currentUserPhone,
+        driverUid: driverUid,
+        driverName: driverName,
+        from: from,
+        to: to,
+        rideDate: widget.data['rideDate'] != null ? (widget.data['rideDate'] is Timestamp ? (widget.data['rideDate'] as Timestamp).toDate() : DateTime.parse(widget.data['rideDate'])) : DateTime.now(),
+        rideTime: widget.data['rideTime'] ?? '',
+        seatsBooked: _seatsToBook,
+        pricePerSeat: pricePerSeat,
+        totalPrice: totalAmount,
+        paymentMethod: 'Cash', // Default for now
+        createdAt: DateTime.now(),
+      );
+
+      await FirebaseService().createBookingRequest(booking);
+      setState(() => _isRequesting = false);
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.r)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 2),
-                      ),
-                      child: CircleAvatar(
-                        radius: 24.r,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.05),
-                        child: Icon(Icons.person_rounded,
-                            color: AppColors.primary, size: 28.sp),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(ride.driverName,
-                              style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary)),
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4.r),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.star_rounded,
-                                        color: Colors.amber, size: 14.sp),
-                                    SizedBox(width: 2.w),
-                                    Text('${ride.driverRating}',
-                                        style: TextStyle(
-                                            fontSize: 12.sp,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.amber[800])),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 8.w),
-                              Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 14.sp),
-                              SizedBox(width: 2.w),
-                              Text('Verified', style: TextStyle(fontSize: 11.sp, color: AppColors.primary)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '₹${ride.pricePerSeat.toStringAsFixed(0)}',
+                Icon(Icons.hourglass_top_rounded,
+                    color: AppColors.primary, size: 64.sp),
+                SizedBox(height: 16.h),
+                Text('Request Sent! ⏳',
+                    style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.bold)),
+                SizedBox(height: 8.h),
+                Text(
+                  'Waiting for $driverName to accept.\nYou\'ll get a notification once confirmed!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 13.sp,
+                      color: AppColors.textSecondary),
+                ),
+                SizedBox(height: 8.h),
+                Container(
+                  padding: EdgeInsets.all(12.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Row(
+                    mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('$_seatsToBook seat(s)',
                           style: TextStyle(
-                            fontSize: 22.sp,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        Text('per seat',
-                            style: TextStyle(
-                                fontSize: 11.sp,
-                                color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 20.h),
-
-                Row(
-                  children: [
-                    Column(
-                      children: [
-                        Icon(Icons.radio_button_checked, color: AppColors.primary, size: 16.sp),
-                        Container(width: 2, height: 30.h,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [AppColors.primary, AppColors.secondary],
-                            ),
-                          ),
-                        ),
-                        Icon(Icons.location_on_rounded,
-                            color: AppColors.secondary, size: 18.sp),
-                      ],
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(ride.from,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary)),
-                          SizedBox(height: 28.h),
-                          Text(ride.to,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary)),
-                        ],
+                              fontSize: 13.sp,
+                              color: AppColors.textSecondary)),
+                      Text(
+                        '₹${totalAmount.toStringAsFixed(0)}',
+                        style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary),
                       ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Text(ride.rideTime,
-                              style: TextStyle(
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary)),
-                        ),
-                        SizedBox(height: 24.h),
-                        Row(
-                          children: [
-                            Icon(Icons.event_seat_rounded,
-                                size: 16.sp, color: AppColors.primary),
-                            SizedBox(width: 4.w),
-                            Text('${ride.availableSeats} Left',
-                                style: TextStyle(
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: ride.availableSeats < 2 ? AppColors.error : AppColors.textSecondary)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-
                 SizedBox(height: 20.h),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: EdgeInsets.all(10.w),
-                        decoration: BoxDecoration(
-                          color: AppColors.background.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.directions_car_filled_rounded,
-                                size: 18.sp, color: AppColors.textSecondary),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: Text(ride.vehicle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: 12.sp,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textSecondary)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    _buildFeatureIcon(Icons.ac_unit_rounded, "AC"),
-                    SizedBox(width: 8.w),
-                    _buildFeatureIcon(Icons.music_note_rounded, "Music"),
-                  ],
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK, Got It!'),
                 ),
               ],
             ),
           ),
-
-          // Bottom Action Bar
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.03),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(24.r),
-                bottomRight: Radius.circular(24.r),
-              ),
-              border: Border(top: BorderSide(color: AppColors.divider)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RatingScreen(
-                            rideId: ride.rideId,
-                            driverName: ride.driverName,
-                            driverUid: ride.driverUid,
-                            from: ride.from,
-                            to: ride.to,
-                          ),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                    ),
-                    child: Text('View Profile'),
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      // Send request notification to driver
-                      await FirebaseService().sendNotification(
-                        toUid: ride.driverUid,
-                        title: 'New Ride Request! 🚗',
-                        body: '${FirebaseAuth.instance.currentUser?.displayName ?? 'Someone'} wants to join your ride from ${ride.from} to ${ride.to}.',
-                        type: 'ride_request',
-                        data: {'rideId': ride.rideId},
-                      );
-
-                      if (!context.mounted) return;
-
-                      // Go to payment first
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PaymentScreen(
-                            rideId: ride.rideId,
-                            driverName: ride.driverName,
-                            from: ride.from,
-                            to: ride.to,
-                            pricePerSeat: ride.pricePerSeat,
-                            seats: _seats,
-                          ),
-                        ),
-                      );
-
-                      if (!context.mounted) return;
-
-                      // After payment, open live tracking
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LiveTrackingScreen(
-                            rideId: ride.rideId,
-                            isDriver: false,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                      elevation: 0,
-                    ),
-                    child: Text('Book Now'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureIcon(IconData icon, String label) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Icon(icon, size: 16.sp, color: AppColors.primary),
-    );
+        );
+      }
+    } catch (e) {
+      setState(() => _isRequesting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 }

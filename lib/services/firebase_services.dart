@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
 import '../models/ride_model.dart';
 import '../models/ride_alert_model.dart';
-
+import '../models/booking_model.dart';
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -14,6 +14,155 @@ class FirebaseService {
   // ==================
   // USER METHODS
   // ==================
+
+
+// ... inside FirebaseService class, add these methods:
+
+// ==================
+// BOOKING METHODS
+// ==================
+
+// Create a booking request (rider requests a ride - status: pending)
+  Future<String> createBookingRequest(BookingModel booking) async {
+    await _db
+        .collection('bookings')
+        .doc(booking.bookingId)
+        .set(booking.toMap());
+
+    // Notify the driver
+    await sendNotification(
+      toUid: booking.driverUid,
+      title: 'New Ride Request! 🚗',
+      body:
+      '${booking.riderName} wants ${booking.seatsBooked} seat(s) for ${booking.from} → ${booking.to}',
+      data: {'type': 'ride_request', 'bookingId': booking.bookingId},
+    );
+
+    return booking.bookingId;
+  }
+
+// Get pending requests for a driver (for their offered rides)
+  Stream<List<BookingModel>> getDriverRequests(String driverUid) {
+    return _db
+        .collection('bookings')
+        .where('driverUid', isEqualTo: driverUid)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => BookingModel.fromMap(doc.data()))
+        .toList());
+  }
+
+// Get my bookings (as a rider)
+  Stream<List<BookingModel>> getMyBookings(String riderUid) {
+    return _db
+        .collection('bookings')
+        .where('riderUid', isEqualTo: riderUid)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => BookingModel.fromMap(doc.data()))
+        .toList());
+  }
+
+// ACCEPT booking — Transaction-safe seat decrement
+// Returns true if successful, false if not enough seats left
+  Future<Map<String, dynamic>> acceptBookingRequest(
+      String bookingId, String rideId, int seatsRequested) async {
+    try {
+      final result = await _db.runTransaction<Map<String, dynamic>>(
+              (transaction) async {
+            final rideRef = _db.collection('rides').doc(rideId);
+            final rideSnap = await transaction.get(rideRef);
+
+            if (!rideSnap.exists) {
+              return {'success': false, 'message': 'Ride no longer exists!'};
+            }
+
+            final rideData = rideSnap.data()!;
+            final int currentSeats = rideData['availableSeats'] ?? 0;
+
+            if (currentSeats < seatsRequested) {
+              return {
+                'success': false,
+                'message':
+                'Not enough seats left! Only $currentSeats seat(s) available.'
+              };
+            }
+
+            final int newSeats = currentSeats - seatsRequested;
+
+            // Update ride seats (and mark full if 0 left)
+            transaction.update(rideRef, {
+              'availableSeats': newSeats,
+              if (newSeats == 0) 'status': 'full',
+            });
+
+            // Update booking status
+            final bookingRef = _db.collection('bookings').doc(bookingId);
+            transaction.update(bookingRef, {'status': 'accepted'});
+
+            return {
+              'success': true,
+              'message': 'Booking accepted!',
+              'remainingSeats': newSeats,
+            };
+          });
+
+      // Notify rider after transaction succeeds
+      if (result['success'] == true) {
+        final bookingDoc =
+        await _db.collection('bookings').doc(bookingId).get();
+        final booking = BookingModel.fromMap(bookingDoc.data()!);
+
+        await sendNotification(
+          toUid: booking.riderUid,
+          title: 'Ride Accepted! ✅',
+          body:
+          '${booking.driverName} accepted your request for ${booking.from} → ${booking.to}',
+          data: {'type': 'ride_accepted', 'bookingId': bookingId},
+        );
+      }
+
+      return result;
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+  // REJECT booking
+  Future<void> rejectBookingRequest(String bookingId) async {
+    await _db
+        .collection('bookings')
+        .doc(bookingId)
+        .update({'status': 'rejected'});
+
+    final bookingDoc =
+    await _db.collection('bookings').doc(bookingId).get();
+    if (bookingDoc.exists) {
+      final booking = BookingModel.fromMap(bookingDoc.data()!);
+      await sendNotification(
+        toUid: booking.riderUid,
+        title: 'Ride Request Declined',
+        body:
+        '${booking.driverName} could not accept your request for ${booking.from} → ${booking.to}',
+        data: {'type': 'ride_rejected', 'bookingId': bookingId},
+      );
+    }
+  }
+
+// Mark booking as paid
+  Future<void> markBookingPaid(String bookingId) async {
+    await _db
+        .collection('bookings')
+        .doc(bookingId)
+        .update({'paymentStatus': 'paid'});
+  }
+
+// Get a single ride's live data (for real seat count)
+  Stream<DocumentSnapshot> getRideStream(String rideId) {
+    return _db.collection('rides').doc(rideId).snapshots();
+  }
 
   // Save user to Firestore
   Future<void> saveUser(UserModel user) async {
@@ -148,6 +297,59 @@ class FirebaseService {
   Future<void> deleteNotification(String docId) async {
     await _db.collection('notifications').doc(docId).delete();
   }
+  // Update booking/ride status
+  Future<void> updateBookingStatus(
+      String bookingId, String status) async {
+    await _db
+        .collection('bookings')
+        .doc(bookingId)
+        .update({'status': status});
+  }
+
+// Get active booking for a rider (their current ride)
+  Stream<QuerySnapshot> getRiderActiveBooking(String riderUid) {
+    return _db
+        .collection('bookings')
+        .where('riderUid', isEqualTo: riderUid)
+        .where('status', whereIn: [
+      'confirmed',
+      'en_route',
+      'started',
+    ])
+        .limit(1)
+        .snapshots();
+  }
+
+// Get active booking for a driver (their current ride)
+  Stream<QuerySnapshot> getDriverActiveBookings(String driverUid) {
+    return _db
+        .collection('bookings')
+        .where('driverUid', isEqualTo: driverUid)
+        .where('status', whereIn: [
+      'confirmed',
+      'en_route',
+      'started',
+    ])
+        .snapshots();
+  }
+
+// Complete ride — update booking + ride status
+  Future<void> completeRide(
+      String bookingId, String rideId) async {
+    final batch = _db.batch();
+
+    batch.update(
+      _db.collection('bookings').doc(bookingId),
+      {'status': 'ended'},
+    );
+
+    batch.update(
+      _db.collection('rides').doc(rideId),
+      {'status': 'completed'},
+    );
+
+    await batch.commit();
+  }
 
   // Send notification to a user
   Future<void> sendNotification({
@@ -174,11 +376,27 @@ class FirebaseService {
     await _db.collection('rides').doc(rideId).update({'status': status});
   }
 
-  // Book a seat (decrement available seats)
-  Future<void> bookSeat(String rideId) async {
-    await _db.collection('rides').doc(rideId).update({
-      'availableSeats': FieldValue.increment(-1),
-    });
+  // Book a seat (decrement available seats) - Transaction-safe
+  Future<bool> bookSeat(String rideId, int seatsToBook) async {
+    try {
+      return await _db.runTransaction((transaction) async {
+        final rideRef = _db.collection('rides').doc(rideId);
+        final rideSnap = await transaction.get(rideRef);
+
+        if (!rideSnap.exists) return false;
+
+        final int currentSeats = rideSnap.data()?['availableSeats'] ?? 0;
+        if (currentSeats < seatsToBook) return false;
+
+        transaction.update(rideRef, {
+          'availableSeats': currentSeats - seatsToBook,
+          if (currentSeats - seatsToBook == 0) 'status': 'full',
+        });
+        return true;
+      });
+    } catch (e) {
+      return false;
+    }
   }
 
   // Get single ride details
