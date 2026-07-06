@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../services/firebase_services.dart';
 import '../../models/user_model.dart';
 import '../../models/ride_model.dart';
+import '../../models/booking_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../core/constants/app_colors.dart';
@@ -12,6 +13,7 @@ import '../ride/find_ride_screen.dart';
 import '../ride/offer_ride_screen.dart';
 import 'map_screen.dart';
 import '../chat/chat_list_screen.dart';
+import '../chat/ride_chat_screen.dart';
 import '../profile/profile_screen.dart';
 import '../profile/ride_history_screen.dart';
 import '../ride/ride_details_screen.dart';
@@ -19,7 +21,7 @@ import '../ai/ai_assistant_screen.dart';
 import '../ride/driver_requests_screen.dart';
 import '../ride/my_bookings_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -28,34 +30,106 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Show notification banner at top of home
-  Widget _buildNotificationBanner() {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService().getNotifications(uid),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          debugPrint('Notification Stream Error: ${snapshot.error}');
-          return const SizedBox.shrink();
+  int _selectedIndex = 0;
+  final User? _user = FirebaseAuth.instance.currentUser;
+  UserModel? _userModel;
+
+  GoogleMapController? _mapController;
+  Position? _currentPosition;
+  bool _isLoadingMap = true;
+  Set<Marker> _rideMarkers = {};
+  static const LatLng _defaultLocation = LatLng(28.6139, 77.2090);
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+    _getCurrentLocation();
+    _listenToActiveRides();
+  }
+
+  void _listenToActiveRides() {
+    FirebaseService().getActiveRides().listen((rides) {
+      if (mounted) {
+        setState(() {
+          _rideMarkers = rides.map((ride) {
+            return Marker(
+              markerId: MarkerId(ride.rideId),
+              position: LatLng(ride.fromLat, ride.fromLng),
+              infoWindow: InfoWindow(
+                title: '${ride.from} → ${ride.to}',
+                snippet:
+                '${ride.driverName} • ₹${ride.pricePerSeat}',
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueAzure),
+            );
+          }).toSet();
+        });
+      }
+    });
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      LocationPermission permission =
+      await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _isLoadingMap = false);
+          return;
         }
-        
+      }
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _isLoadingMap = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingMap = false);
+    }
+  }
+
+  Future<void> _fetchUserData() async {
+    if (_user != null) {
+      final user = await FirebaseService().getUser(_user!.uid);
+      if (mounted) setState(() => _userModel = user);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // Notification Banner
+  // ─────────────────────────────────────────────
+  Widget _buildNotificationBanner() {
+    final uid = _user?.uid ?? '';
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('toUid', isEqualTo: uid)
+          .where('isRead', isEqualTo: false)
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox.shrink();
         }
-
-        // Get the latest unread notification
-        final unreadDocs = snapshot.data!.docs.where((d) => (d.data() as Map<String, dynamic>)['isRead'] == false).toList();
-        
-        if (unreadDocs.isEmpty) return const SizedBox.shrink();
-
-        final doc = unreadDocs.first;
+        final doc = snapshot.data!.docs.first;
         final data = doc.data() as Map<String, dynamic>;
         final String title = data['title'] ?? 'Notification';
         final String body = data['body'] ?? '';
 
         return GestureDetector(
           onTap: () async {
-            await FirebaseService().markNotificationRead(doc.id);
+            await FirebaseFirestore.instance
+                .collection('notifications')
+                .doc(doc.id)
+                .update({'isRead': true});
           },
           child: Container(
             margin: EdgeInsets.symmetric(
@@ -111,10 +185,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-                SizedBox(width: 8.w),
                 GestureDetector(
                   onTap: () async {
-                    await FirebaseService().markNotificationRead(doc.id);
+                    await FirebaseFirestore.instance
+                        .collection('notifications')
+                        .doc(doc.id)
+                        .update({'isRead': true});
                   },
                   child: Icon(Icons.close_rounded,
                       color: AppColors.white.withOpacity(0.8),
@@ -128,20 +204,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-// Unread notification count for bell icon
+  // ─────────────────────────────────────────────
+  // Notification Bell
+  // ─────────────────────────────────────────────
   Widget _buildNotificationBell() {
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = _user?.uid ?? '';
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseService().getNotifications(uid),
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .where('toUid', isEqualTo: uid)
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) return const Icon(Icons.notifications_rounded, color: AppColors.white, size: 26);
-        
-        final unreadCount = snapshot.data?.docs.where((d) => (d.data() as Map<String, dynamic>)['isRead'] == false).length ?? 0;
-        
+        final unreadCount = snapshot.data?.docs.length ?? 0;
         return Stack(
           children: [
             IconButton(
-              onPressed: () => setState(() => _selectedIndex = 4),
+              onPressed: () => setState(() => _selectedIndex = 3),
               icon: const Icon(Icons.notifications_rounded,
                   color: AppColors.white, size: 26),
             ),
@@ -173,90 +252,283 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-  int _selectedIndex = 0;
-  final User? _user = FirebaseAuth.instance.currentUser;
-  UserModel? _userModel;
 
-  // Fake static count for preview; plug your streams here
-  final int _unreadChatCount = 3;
-
-  // Map related variables
-  GoogleMapController? _mapController;
-  Position? _currentPosition;
-  bool _isLoadingMap = true;
-  Set<Marker> _rideMarkers = {};
-  static const LatLng _defaultLocation = LatLng(28.6139, 77.2090);
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserData();
-    _getCurrentLocation();
-    _listenToActiveRides();
-  }
-
-  void _listenToActiveRides() {
-    FirebaseService().getActiveRides().listen((rides) {
-      if (mounted) {
-        setState(() {
-          _rideMarkers = rides.map((ride) {
-            return Marker(
-              markerId: MarkerId(ride.rideId),
-              position: LatLng(ride.fromLat, ride.fromLng),
-              infoWindow: InfoWindow(
-                title: '${ride.from} → ${ride.to}',
-                snippet: '${ride.driverName} • ₹${ride.pricePerSeat}',
-              ),
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-            );
-          }).toSet();
-        });
-      }
-    });
-  }
-
-  Future<void> _getCurrentLocation() async {
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() => _isLoadingMap = false);
-          return;
+  // ─────────────────────────────────────────────
+  // ✅ Active Ride Chat Banner
+  // Shows when rider has an accepted/confirmed booking
+  // ─────────────────────────────────────────────
+  Widget _buildActiveChatBanner() {
+    final uid = _user?.uid ?? '';
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('riderUid', isEqualTo: uid)
+          .where('status', whereIn: [
+        'accepted',
+        'confirmed',
+        'en_route',
+        'started',
+      ]).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
         }
-      }
 
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+        final booking = BookingModel.fromMap(
+            snapshot.data!.docs.first.data()
+            as Map<String, dynamic>);
 
-      if (mounted) {
-        setState(() {
-          _currentPosition = position;
-          _isLoadingMap = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingMap = false);
-      }
-    }
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RideChatScreen(
+                booking: booking,
+                isDriver: false,
+              ),
+            ),
+          ),
+          child: Container(
+            margin: EdgeInsets.symmetric(
+                horizontal: 16.w, vertical: 4.h),
+            padding: EdgeInsets.symmetric(
+                horizontal: 14.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: AppColors.secondary,
+              borderRadius: BorderRadius.circular(14.r),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.secondary.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 34.w,
+                  height: 34.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.chat_rounded,
+                      color: AppColors.white, size: 18.sp),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chat with ${booking.driverName.isEmpty ? 'Your Driver' : booking.driverName} 🚗',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${booking.from} → ${booking.to}',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: AppColors.white.withOpacity(0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    color: AppColors.white.withOpacity(0.8),
+                    size: 14.sp),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
-  Future<void> _fetchUserData() async {
-    if (_user != null) {
-      final user = await FirebaseService().getUser(_user!.uid);
-      if (mounted) {
-        setState(() => _userModel = user);
-      }
-    }
+  // ─────────────────────────────────────────────
+  // ✅ Driver Active Ride Chat Banner
+  // Shows when driver has accepted bookings
+  // ─────────────────────────────────────────────
+  Widget _buildDriverChatBanner() {
+    final uid = _user?.uid ?? '';
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('bookings')
+          .where('driverUid', isEqualTo: uid)
+          .where('status', whereIn: [
+        'accepted',
+        'confirmed',
+        'en_route',
+        'started',
+      ]).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final count = snapshot.data!.docs.length;
+        final booking = BookingModel.fromMap(
+            snapshot.data!.docs.first.data()
+            as Map<String, dynamic>);
+
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RideChatScreen(
+                booking: booking,
+                isDriver: true,
+              ),
+            ),
+          ),
+          child: Container(
+            margin: EdgeInsets.symmetric(
+                horizontal: 16.w, vertical: 4.h),
+            padding: EdgeInsets.symmetric(
+                horizontal: 14.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1565C0),
+              borderRadius: BorderRadius.circular(14.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1565C0).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 34.w,
+                  height: 34.w,
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.chat_rounded,
+                      color: AppColors.white, size: 18.sp),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chat with ${count > 1 ? '$count Riders' : (booking.riderName.isEmpty ? 'Rider' : booking.riderName)} 👤',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '${booking.from} → ${booking.to}',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: AppColors.white.withOpacity(0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    color: AppColors.white.withOpacity(0.8),
+                    size: 14.sp),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // ✅ Chat Nav Badge — unread count
+  // ─────────────────────────────────────────────
+  Widget _buildChatNavIcon(bool isSelected) {
+    final uid = _user?.uid ?? '';
+    final color = isSelected ? AppColors.primary : AppColors.textHint.withOpacity(0.6);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('ride_chats')
+          .where('riderUid', isEqualTo: uid)
+          .snapshots(),
+      builder: (context, riderSnap) {
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('ride_chats')
+              .where('driverUid', isEqualTo: uid)
+              .snapshots(),
+          builder: (context, driverSnap) {
+            int unread = 0;
+
+            // Count chats where last message is NOT from me
+            for (var doc in riderSnap.data?.docs ?? []) {
+              final data = doc.data() as Map<String, dynamic>;
+              if (data['lastSenderId'] != uid) unread++;
+            }
+            for (var doc in driverSnap.data?.docs ?? []) {
+              final data = doc.data() as Map<String, dynamic>;
+              if (data['lastSenderId'] != uid) unread++;
+            }
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  isSelected
+                      ? Icons.chat_bubble_rounded
+                      : Icons.chat_bubble_outline_rounded,
+                  color: color,
+                  size: 22.sp,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          unread > 9 ? '9+' : '$unread',
+                          style: const TextStyle(
+                            fontSize: 8,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      extendBody: true, // Allows content to flow softly underneath the floating nav bar
+      extendBody: true,
       body: SafeArea(
         bottom: false,
         child: _buildBody(),
@@ -274,12 +546,14 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-              _buildNotificationBanner(),
+              _buildNotificationBanner(),     // 🔔 Notifications
+              _buildActiveChatBanner(),       // 💬 Rider chat banner
+              _buildDriverChatBanner(),       // 💬 Driver chat banner
               _buildQuickActions(),
               _buildMapPreview(),
               _buildRecentRides(),
               _buildStats(),
-              SizedBox(height: 100.h), // Padding to prevent bottom floating bar overlapping content
+              SizedBox(height: 100.h),
             ],
           ),
         );
@@ -298,14 +572,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Refactored Premium Header
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 28.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.85)],
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withOpacity(0.85)
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -327,13 +603,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     'Namaste! 👋',
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: AppColors.white.withValues(alpha: 0.75),
+                      color: AppColors.white.withOpacity(0.75),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    _userModel?.name ?? _user?.displayName ?? 'User',
+                    _userModel?.name ??
+                        _user?.displayName ??
+                        'User',
                     style: TextStyle(
                       fontSize: 22.sp,
                       fontWeight: FontWeight.bold,
@@ -344,32 +622,38 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Row(
                 children: [
-                  // Map button
                   IconButton(
-                    onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const MapScreen())),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const MapScreen())),
                     icon: const Icon(Icons.map_rounded,
                         color: AppColors.white, size: 26),
                   ),
-                  // 🔔 Notification bell with badge
                   _buildNotificationBell(),
-                  // Avatar
                   GestureDetector(
                     onTap: () => setState(() => _selectedIndex = 3),
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.white.withValues(alpha: 0.4), width: 1.5),
+                        border: Border.all(
+                            color: AppColors.white.withOpacity(0.4),
+                            width: 1.5),
                       ),
                       child: CircleAvatar(
                         radius: 20.r,
-                        backgroundColor: AppColors.white.withValues(alpha: 0.15),
-                        backgroundImage: _userModel?.profilePic.isNotEmpty == true
+                        backgroundColor:
+                        AppColors.white.withOpacity(0.15),
+                        backgroundImage:
+                        _userModel?.profilePic.isNotEmpty == true
                             ? NetworkImage(_userModel!.profilePic)
                             : null,
-                        child: _userModel?.profilePic.isNotEmpty == true
+                        child:
+                        _userModel?.profilePic.isNotEmpty == true
                             ? null
-                            : Icon(Icons.person_outline, color: AppColors.white, size: 20.sp),
+                            : Icon(Icons.person_outline,
+                            color: AppColors.white,
+                            size: 20.sp),
                       ),
                     ),
                   ),
@@ -377,22 +661,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+
           SizedBox(height: 24.h),
 
-          // Modern Clean Search Bar Card
+          // Search Bar
           GestureDetector(
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const FindRideScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const FindRideScreen()),
             ),
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 16.w, vertical: 12.h),
               decoration: BoxDecoration(
                 color: AppColors.white,
                 borderRadius: BorderRadius.circular(14.r),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: Colors.black.withOpacity(0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -400,13 +687,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.search_rounded, color: AppColors.primary, size: 20.sp),
+                  Icon(Icons.search_rounded,
+                      color: AppColors.primary, size: 20.sp),
                   SizedBox(width: 12.w),
                   Text(
                     'Where do you want to go?',
                     style: TextStyle(
                       fontSize: 14.sp,
-                      color: AppColors.textSecondary.withValues(alpha: 0.8),
+                      color:
+                      AppColors.textSecondary.withOpacity(0.8),
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -419,23 +708,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeaderRoundButton({required IconData icon, required VoidCallback onTap}) {
-    return Container(
-      height: 40.w,
-      width: 40.w,
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.15),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        onPressed: onTap,
-        icon: Icon(icon, color: AppColors.white, size: 20.sp),
-      ),
-    );
-  }
-
-  // Refactored Services Section
   Widget _buildQuickActions() {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 12.h),
@@ -459,7 +731,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 AppColors.primary,
                     () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const FindRideScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const FindRideScreen()),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -469,7 +742,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 AppColors.secondary,
                     () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const OfferRideScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const OfferRideScreen()),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -479,8 +753,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Color(0xFF1E88E5),
                     () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const RideHistoryScreen()),
+                  MaterialPageRoute(
+                      builder: (context) =>
+                      const RideHistoryScreen()),
                 ),
+              ),
+              SizedBox(width: 12.w),
+              // ✅ Chat quick action
+              _buildActionCard(
+                'Chats',
+                Icons.chat_rounded,
+                AppColors.success,
+                    () => setState(() => _selectedIndex = 1),
               ),
             ],
           ),
@@ -489,7 +773,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionCard(
+      String title, IconData icon, Color color, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -500,19 +785,20 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(16.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: Colors.black.withOpacity(0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               )
             ],
-            border: Border.all(color: color.withValues(alpha: 0.08), width: 1),
+            border: Border.all(
+                color: color.withOpacity(0.08), width: 1),
           ),
           child: Column(
             children: [
               Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 22.sp),
@@ -522,7 +808,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
@@ -555,9 +841,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(width: 8.w),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.1),
+                      color: AppColors.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6.r),
                     ),
                     child: Row(
@@ -587,7 +874,8 @@ class _HomeScreenState extends State<HomeScreen> {
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MapScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const MapScreen()),
                 ),
                 child: Text(
                   'View All',
@@ -608,7 +896,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -618,38 +906,47 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(20.r),
               child: Stack(
                 children: [
-                  _isLoadingMap 
-                    ? const Center(child: CircularProgressIndicator())
-                    : GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: _currentPosition != null 
-                              ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-                              : _defaultLocation,
-                          zoom: 12,
-                        ),
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                          if (_currentPosition != null) {
-                            _mapController?.animateCamera(
-                              CameraUpdate.newLatLng(
-                                LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                              ),
-                            );
-                          }
-                        },
-                        markers: _rideMarkers,
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        scrollGesturesEnabled: false,
-                        rotateGesturesEnabled: false,
-                        tiltGesturesEnabled: false,
-                      ),
+                  _isLoadingMap
+                      ? Container(
+                    color: AppColors.background,
+                    child: const Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.primary)),
+                  )
+                      : GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _currentPosition != null
+                          ? LatLng(
+                          _currentPosition!.latitude,
+                          _currentPosition!.longitude)
+                          : _defaultLocation,
+                      zoom: 12,
+                    ),
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      if (_currentPosition != null) {
+                        _mapController?.animateCamera(
+                          CameraUpdate.newLatLng(LatLng(
+                            _currentPosition!.latitude,
+                            _currentPosition!.longitude,
+                          )),
+                        );
+                      }
+                    },
+                    markers: _rideMarkers,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    scrollGesturesEnabled: false,
+                    rotateGesturesEnabled: false,
+                    tiltGesturesEnabled: false,
+                  ),
                   Positioned.fill(
                     child: GestureDetector(
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const MapScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const MapScreen()),
                       ),
                       child: Container(color: Colors.transparent),
                     ),
@@ -665,14 +962,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildRecentRides() {
     return StreamBuilder<List<RideModel>>(
-      stream: _user != null ? FirebaseService().getMyRides(_user!.uid) : null,
+      stream: _user != null
+          ? FirebaseService().getMyRides(_user!.uid)
+          : null,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox();
+        }
         final rides = snapshot.data ?? [];
         if (rides.isEmpty) return const SizedBox();
 
         return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+          padding:
+          EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -690,23 +992,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   TextButton(
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const RideHistoryScreen()),
+                      MaterialPageRoute(
+                          builder: (context) =>
+                          const RideHistoryScreen()),
                     ),
-                    child: Text('See All', style: TextStyle(color: AppColors.primary, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+                    child: Text('See All',
+                        style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
               SizedBox(height: 4.h),
               ...rides.take(3).map((ride) => GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RideDetailScreen(ride: ride),
-                      ),
-                    );
-                  },
-                  child: _buildRideCard(ride))),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        RideDetailScreen(ride: ride),
+                  ),
+                ),
+                child: _buildRideCard(ride),
+              )),
             ],
           ),
         );
@@ -724,7 +1032,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(14.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -737,10 +1045,10 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 40.w,
             decoration: BoxDecoration(
               color: ride.status == 'active'
-                  ? AppColors.primary.withValues(alpha: 0.08)
+                  ? AppColors.primary.withOpacity(0.08)
                   : isCompleted
-                  ? AppColors.success.withValues(alpha: 0.08)
-                  : AppColors.error.withValues(alpha: 0.08),
+                  ? AppColors.success.withOpacity(0.08)
+                  : AppColors.error.withOpacity(0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -796,7 +1104,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStats() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+      padding:
+      EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -811,11 +1120,26 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(height: 14.h),
           Row(
             children: [
-              _buildStatCard('₹${(_userModel?.totalMoneySaved ?? 0).toStringAsFixed(0)}', 'Money Saved', Icons.savings_rounded, AppColors.primary),
+              _buildStatCard(
+                '₹${(_userModel?.totalMoneySaved ?? 0).toStringAsFixed(0)}',
+                'Money Saved',
+                Icons.savings_rounded,
+                AppColors.primary,
+              ),
               SizedBox(width: 10.w),
-              _buildStatCard('${(_userModel?.totalCo2Saved ?? 0).toStringAsFixed(1)} kg', 'CO₂ Reduced', Icons.eco_rounded, AppColors.success),
+              _buildStatCard(
+                '${(_userModel?.totalCo2Saved ?? 0).toStringAsFixed(1)} kg',
+                'CO₂ Reduced',
+                Icons.eco_rounded,
+                AppColors.success,
+              ),
               SizedBox(width: 10.w),
-              _buildStatCard('${_userModel?.totalRides ?? 0}', 'Total Rides', Icons.directions_car_rounded, AppColors.secondary),
+              _buildStatCard(
+                '${_userModel?.totalRides ?? 0}',
+                'Total Rides',
+                Icons.directions_car_rounded,
+                AppColors.secondary,
+              ),
             ],
           ),
         ],
@@ -823,16 +1147,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatCard(String value, String label, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String value, String label, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
+        padding:
+        EdgeInsets.symmetric(vertical: 14.h, horizontal: 8.w),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(14.r),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -866,7 +1192,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Modern Floating Navigation Bar Implementation
+  // ─────────────────────────────────────────────
+  // ✅ Bottom Nav with Chat Badge
+  // ─────────────────────────────────────────────
   Widget _buildBottomNav() {
     return Align(
       alignment: const Alignment(0, 0.94),
@@ -874,11 +1202,11 @@ class _HomeScreenState extends State<HomeScreen> {
         margin: EdgeInsets.fromLTRB(24.w, 0, 24.w, 20.h),
         height: 64.h,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
+          color: Colors.white.withOpacity(0.9),
           borderRadius: BorderRadius.circular(24.r),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: Colors.black.withOpacity(0.08),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -891,12 +1219,18 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-                _buildNavItem(1, Icons.chat_bubble_rounded, Icons.chat_bubble_outline_rounded, 'Chat'),
-                _buildNavItem(4, Icons.inbox_rounded, Icons.inbox_outlined, 'Requests'),
-                _buildNavItem(2, Icons.smart_toy_rounded, Icons.smart_toy_outlined, 'AI'),
-                _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded, 'Profile'),
-                _buildNavItem(5, Icons.history_rounded, Icons.history_outlined, 'My Rides'),
+                _buildNavItem(0, Icons.home_rounded,
+                    Icons.home_outlined, 'Home'),
+                // ✅ Chat with badge
+                _buildChatNavItemWrapper(),
+                _buildNavItem(4, Icons.inbox_rounded,
+                    Icons.inbox_outlined, 'Requests'),
+                _buildNavItem(2, Icons.smart_toy_rounded,
+                    Icons.smart_toy_outlined, 'AI'),
+                _buildNavItem(3, Icons.person_rounded,
+                    Icons.person_outline_rounded, 'Profile'),
+                _buildNavItem(5, Icons.history_rounded,
+                    Icons.history_outlined, 'My Rides'),
               ],
             ),
           ),
@@ -905,16 +1239,55 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData activeIcon, IconData inactiveIcon, String label) {
+  // ✅ Chat nav item with unread badge
+  Widget _buildChatNavItemWrapper() {
+    final isSelected = _selectedIndex == 1;
+    final color = isSelected
+        ? AppColors.primary
+        : AppColors.textHint.withOpacity(0.6);
+
+    return InkWell(
+      onTap: () => setState(() => _selectedIndex = 1),
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Container(
+        padding:
+        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildChatNavIcon(isSelected),
+            SizedBox(height: 3.h),
+            Text(
+              'Chat',
+              style: TextStyle(
+                color: color,
+                fontSize: 10.sp,
+                fontWeight: isSelected
+                    ? FontWeight.bold
+                    : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData activeIcon,
+      IconData inactiveIcon, String label) {
     final isSelected = _selectedIndex == index;
-    final color = isSelected ? AppColors.primary : AppColors.textHint.withValues(alpha: 0.6);
+    final color = isSelected
+        ? AppColors.primary
+        : AppColors.textHint.withOpacity(0.6);
 
     return InkWell(
       onTap: () => setState(() => _selectedIndex = index),
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        padding:
+        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -929,7 +1302,9 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 color: color,
                 fontSize: 10.sp,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontWeight: isSelected
+                    ? FontWeight.bold
+                    : FontWeight.w500,
               ),
             ),
           ],

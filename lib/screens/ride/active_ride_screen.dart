@@ -12,7 +12,7 @@ import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
 import '../../services/location_services.dart';
 import '../payment/payment_screen.dart';
-
+import 'ride_sharing_screen.dart';
 class ActiveRideScreen extends StatefulWidget {
   final BookingModel booking;
   final bool isDriver;
@@ -571,7 +571,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
                   // ── Driver Action Buttons ──────────
                   if (widget.isDriver) ...[
-                    if (_currentStatus == RideStatus.confirmed)
+                    if (_currentStatus == RideStatus.accepted || _currentStatus == RideStatus.confirmed)
                       ElevatedButton.icon(
                         onPressed: _isUpdatingStatus
                             ? null
@@ -644,6 +644,26 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                   ],
 
                   SizedBox(height: 8.h),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RideSharingScreen(
+                          booking: widget.booking,
+                          isDriver: widget.isDriver,
+                        ),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: Size(double.infinity, 46.h),
+                      side: const BorderSide(color: AppColors.primary),
+                    ),
+                    icon: Icon(Icons.share_location_rounded,
+                        color: AppColors.primary, size: 18.sp),
+                    label: Text('Share Ride & Navigate',
+                        style: TextStyle(
+                            color: AppColors.primary, fontSize: 13.sp)),
+                  ),
                 ],
               ),
             ),
@@ -684,6 +704,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
+      case RideStatus.accepted:
       case RideStatus.confirmed:
         return AppColors.primary;
       case RideStatus.enRoute:
@@ -699,6 +720,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
   IconData _statusIcon(String status) {
     switch (status) {
+      case RideStatus.accepted:
       case RideStatus.confirmed:
         return Icons.check_circle_rounded;
       case RideStatus.enRoute:

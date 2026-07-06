@@ -6,6 +6,9 @@ import '../../core/constants/app_colors.dart';
 import '../../models/ride_model.dart';
 import '../../models/booking_model.dart';
 import '../ride/ride_details_screen.dart';
+import '../chat/ride_chat_screen.dart';
+import '../ride/ride_sharing_screen.dart';
+import 'active_ride_screen.dart';
 
 class RideHistoryScreen extends StatefulWidget {
   const RideHistoryScreen({super.key});
@@ -116,7 +119,6 @@ class _RideHistoryScreenState extends State<RideHistoryScreen>
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return StreamBuilder<QuerySnapshot>(
-      // ✅ No orderBy — removes index requirement
       stream: FirebaseFirestore.instance
           .collection('bookings')
           .where('riderUid', isEqualTo: uid)
@@ -130,67 +132,52 @@ class _RideHistoryScreenState extends State<RideHistoryScreen>
 
         if (snapshot.hasError) {
           return Center(
-            child: Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: TextStyle(color: AppColors.error, fontSize: 12.sp),
-              ),
-            ),
+            child: Text('Error: ${snapshot.error}',
+                style: TextStyle(color: AppColors.error)),
           );
         }
 
-        // ✅ Debug - show raw count
         final docs = snapshot.data?.docs ?? [];
 
         if (docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.history_rounded,
-                    size: 64.sp, color: AppColors.border),
-                SizedBox(height: 16.h),
-                Text(
-                  'No rides found!',
-                  style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  'Your ride history records will appear here.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 14.sp, color: AppColors.textSecondary),
-                ),
-                SizedBox(height: 24.h),
-                // Debug info
-                Text(
-                  'Debug: UID = $uid',
-                  style: TextStyle(
-                      fontSize: 10.sp, color: AppColors.textHint),
-                ),
-              ],
-            ),
+          return _buildEmptyState(
+            icon: Icons.history_rounded,
+            title: 'No booked rides yet!',
+            subtitle: 'Rides you book will appear here.',
           );
         }
 
-        final bookings = docs.map((doc) {
-          return BookingModel.fromMap(
-              doc.data() as Map<String, dynamic>);
-        }).toList();
+        // ✅ Sort client-side — no Firestore index needed
+        docs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final aTime = _parseTimestamp(aData['createdAt']);
+          final bTime = _parseTimestamp(bData['createdAt']);
+          return bTime.compareTo(aTime);
+        });
+
+        final bookings = docs
+            .map((doc) => BookingModel.fromMap(
+            doc.data() as Map<String, dynamic>))
+            .toList();
 
         return ListView.builder(
           padding: EdgeInsets.all(16.w),
           itemCount: bookings.length,
-          itemBuilder: (context, index) {
-            return _BookedRideCard(booking: bookings[index]);
-          },
+          itemBuilder: (context, index) =>
+              _BookedRideCard(booking: bookings[index]),
         );
       },
     );
+  }
+
+  DateTime _parseTimestamp(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is Timestamp) return value.toDate();
+    if (value is String && value.isNotEmpty) {
+      try { return DateTime.parse(value); } catch (_) {}
+    }
+    return DateTime.now();
   }
 
   Widget _buildEmptyState({
@@ -538,44 +525,95 @@ class _BookedRideCard extends StatelessWidget {
   final BookingModel booking;
   const _BookedRideCard({required this.booking});
 
+  // ✅ Handles both "accepted" and "confirmed"
+
   Color _statusColor(String status) {
     switch (status) {
-      case 'pending': return AppColors.warning;
-      case 'confirmed': return AppColors.primary;
-      case 'en_route': return AppColors.secondary;
-      case 'started': return AppColors.success;
-      case 'ended': return AppColors.textSecondary;
+      case 'pending':
+        return const Color(0xFFFF6D00);
+      case 'accepted':
+      case 'confirmed':
+        return AppColors.primary;
+      case 'en_route':
+        return AppColors.secondary;
+      case 'started':
+        return AppColors.success;
+      case 'ended':
+      case 'completed':
+        return AppColors.textSecondary;
       case 'cancelled':
-      case 'rejected': return AppColors.error;
-      default: return AppColors.textHint;
+      case 'rejected':
+        return AppColors.error;
+      default:
+        return AppColors.textHint;
     }
   }
+
+  // ✅ Handles both "accepted" and "confirmed"
 
   String _statusLabel(String status) {
     switch (status) {
-      case 'pending': return 'Waiting for Driver';
-      case 'confirmed': return 'Confirmed ✅';
-      case 'en_route': return 'Driver Coming 🚗';
-      case 'started': return 'Ride Started 🟢';
-      case 'ended': return 'Completed ✅';
-      case 'cancelled': return 'Cancelled ❌';
-      case 'rejected': return 'Declined ❌';
-      default: return status;
+      case 'pending':
+        return 'Waiting for Driver ⏳';
+      case 'accepted':
+      case 'confirmed':
+        return 'Confirmed ✅';
+      case 'en_route':
+        return 'Driver Coming 🚗';
+      case 'started':
+        return 'Ride Started 🟢';
+      case 'ended':
+      case 'completed':
+        return 'Completed ✅';
+      case 'cancelled':
+        return 'Cancelled ❌';
+      case 'rejected':
+        return 'Declined ❌';
+      default:
+        return status.toUpperCase();
     }
   }
 
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case 'pending':
+        return Icons.hourglass_top_rounded;
+      case 'accepted':
+      case 'confirmed':
+        return Icons.check_circle_rounded;
+      case 'en_route':
+        return Icons.directions_car_rounded;
+      case 'started':
+        return Icons.play_circle_rounded;
+      case 'ended':
+      case 'completed':
+        return Icons.flag_rounded;
+      case 'cancelled':
+      case 'rejected':
+        return Icons.cancel_rounded;
+      default:
+        return Icons.info_rounded;
+    }
+  }
+
+  bool get _isActive => ['accepted', 'confirmed',
+    'en_route', 'started'].contains(booking.status);
+
+  bool get _needsPayment =>
+      ['ended', 'completed'].contains(booking.status) &&
+          booking.paymentStatus == 'unpaid';
+
   @override
   Widget build(BuildContext context) {
-    final bool needsPayment = booking.status == 'ended' &&
-        booking.paymentStatus == 'unpaid';
-
     return Container(
       margin: EdgeInsets.only(bottom: 14.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16.r),
-        border: needsPayment
-            ? Border.all(color: AppColors.success, width: 1.5)
+        border: _isActive
+            ? Border.all(
+            color: _statusColor(booking.status).withOpacity(0.4),
+            width: 1.5)
             : null,
         boxShadow: [
           BoxShadow(
@@ -587,7 +625,7 @@ class _BookedRideCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Top color bar
+          // ✅ Colored top bar
           Container(
             height: 4.h,
             decoration: BoxDecoration(
@@ -607,15 +645,23 @@ class _BookedRideCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
-                      child: Text(
-                        _statusLabel(booking.status),
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Icon(
+                          _statusIcon(booking.status),
                           color: _statusColor(booking.status),
+                          size: 14.sp,
                         ),
-                      ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          _statusLabel(booking.status),
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.bold,
+                            color: _statusColor(booking.status),
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
                       '₹${booking.totalPrice.toStringAsFixed(0)}',
@@ -642,7 +688,8 @@ class _BookedRideCard extends StatelessWidget {
                             height: 20.h,
                             color: AppColors.border),
                         Icon(Icons.location_on,
-                            color: AppColors.secondary, size: 14.sp),
+                            color: AppColors.secondary,
+                            size: 14.sp),
                       ],
                     ),
                     SizedBox(width: 12.w),
@@ -695,26 +742,42 @@ class _BookedRideCard extends StatelessWidget {
                 Divider(color: AppColors.divider, height: 1),
                 SizedBox(height: 12.h),
 
-                // Driver info + action
+                // Driver + Payment row
                 Row(
                   children: [
                     Icon(Icons.person_rounded,
-                        size: 14.sp, color: AppColors.textSecondary),
+                        size: 14.sp,
+                        color: AppColors.textSecondary),
                     SizedBox(width: 4.w),
-                    Text(
-                      booking.driverName,
-                      style: TextStyle(
-                          fontSize: 12.sp,
-                          color: AppColors.textSecondary),
+                    Expanded(
+                      child: Text(
+                        'Driver: ${booking.driverName}',
+                        style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppColors.textSecondary),
+                      ),
                     ),
 
-                    const Spacer(),
+                    // Chat button
+                    IconButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RideChatScreen(
+                            booking: booking,
+                            isDriver: false,
+                          ),
+                        ),
+                      ),
+                      icon: Icon(Icons.chat_rounded,
+                          color: AppColors.primary, size: 20.sp),
+                      tooltip: 'Chat with Driver',
+                    ),
 
-                    // Pay Now button if ride ended but unpaid
-                    if (needsPayment)
+                    // Payment status
+                    if (_needsPayment)
                       GestureDetector(
                         onTap: () {
-                          // Navigate to payment
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -731,7 +794,7 @@ class _BookedRideCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8.r),
                           ),
                           child: Text(
-                            'Pay Now',
+                            'Pay Now 💳',
                             style: TextStyle(
                               fontSize: 12.sp,
                               color: AppColors.white,
@@ -741,8 +804,7 @@ class _BookedRideCard extends StatelessWidget {
                         ),
                       ),
 
-                    if (!needsPayment &&
-                        booking.paymentStatus == 'paid')
+                    if (booking.paymentStatus == 'paid')
                       Container(
                         padding: EdgeInsets.symmetric(
                             horizontal: 8.w, vertical: 4.h),
@@ -761,6 +823,51 @@ class _BookedRideCard extends StatelessWidget {
                       ),
                   ],
                 ),
+
+                // ✅ Track ride button for active bookings
+                if (_isActive) ...[
+                  SizedBox(height: 12.h),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ActiveRideScreen(
+                            booking: booking,
+                            isDriver: false,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _statusColor(booking.status),
+                      minimumSize: Size(double.infinity, 40.h),
+                    ),
+                    icon: const Icon(Icons.map_rounded, size: 16),
+                    label: const Text('Track My Ride'),
+                  ),
+                  SizedBox(height: 8.h),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RideSharingScreen(
+                          booking: booking,
+                          isDriver: false,
+                        ),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: Size(double.infinity, 40.h),
+                      side: const BorderSide(color: AppColors.secondary),
+                    ),
+                    icon: Icon(Icons.share_location_rounded,
+                        color: AppColors.secondary, size: 16.sp),
+                    label: Text('Share My Ride',
+                        style: TextStyle(
+                            color: AppColors.secondary, fontSize: 13.sp)),
+                  ),
+                ],
               ],
             ),
           ),

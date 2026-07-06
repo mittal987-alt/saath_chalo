@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/secrets.dart';
 
@@ -15,62 +16,41 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
+  final List<Map<String, dynamic>> _conversationHistory = [];
   bool _isLoading = false;
 
-  // ⚠️ Replace with your Gemini API Key
-  static const String _apiKey = Secrets.geminiApiKey;
-  late final GenerativeModel _model;
-  late final ChatSession _chat;
-
-  // System prompt for SaathChalo AI
   static const String _systemPrompt = '''
-You are SaathChalo AI Assistant, a helpful travel companion for "SaathChalo", India's premium carpooling community. Your tone is professional, warm, and culturally attuned to Indian users.
+You are SaathChalo AI, a helpful carpooling assistant for India.
+Help users with:
+- Finding best carpool routes in Indian cities
+- Calculating fare splits
+- Safety tips especially for women
+- Best travel times to avoid traffic
+- Carpooling etiquette
+- How to use the SaathChalo app
+- General travel advice in India
 
-Context & Tone:
-- Use a mix of English and Hindi (Hinglish) where appropriate to feel more local.
-- Use respectful Indian address forms like "Ji" or "Bhai/Behen" when suitable.
-- Emphasize the "Shared Journey, Shared Responsibility" philosophy.
-
-Your specialized capabilities:
-1. Route Expertise: Provide detailed advice on major Indian routes (e.g., Delhi-NCR, Mumbai-Pune, Bangalore-Mysore, Yamuna Expressway, NH-44).
-2. Traffic Awareness: Advise on peak hour timings for major metros (e.g., Silk Board in Bangalore, Mumbai local rush, Delhi Outer Ring Road).
-3. Safety First: Proactively mention safety features like "SOS Emergency", "Live Location Sharing", and "Women-Only Rides" (Ladies Special).
-4. Fair Fare: Use ₹3-5 per km per seat as a standard guideline for fuel and maintenance split. Remind users that SaathChalo is for cost-sharing, not profit.
-5. Cultural Etiquette: Suggest carpooling etiquette (e.g., no smoking, being on time at pickups like "IFFCO Chowk" or "Electronic City").
-6. Inter-city & Intra-city: Offer tips for both long highway drives and daily office commutes.
-7. Weather & Events: Mention monsoon driving safety or festive rush (Diwali, Holi) when relevant.
-
-Key App Features to promote:
-- Real-time CO2 savings tracking (Green Impact).
-- Premium design with comfort-focused seat selection.
-- Verified profiles (Aadhaar/Govt ID verification).
-- Cash and Online (Razorpay/UPI) payment options.
-
-Constraints:
-- Keep responses concise and use emojis (🇮🇳, 🚗, 🛡️, 💰, 🌱).
-- Always recommend using the in-app SOS for emergencies.
-- If a user asks for personal contact details of others, politely refuse as per privacy policy.
+Keep responses concise, friendly and helpful.
+Use emojis to make responses engaging.
+When asked about routes, suggest realistic Indian city routes.
+For fare calculation: typical rate is Rs 2-4 per km per person.
+Always respond in the same language the user writes in (Hindi or English).
 ''';
+
+  // ✅ Supports both AIzaSy and AQ. key formats
+  static const String _baseUrl =
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   @override
   void initState() {
     super.initState();
-    _initializeAI();
     _addWelcomeMessage();
-  }
-
-  void _initializeAI() {
-    _model = GenerativeModel(
-      model: 'gemini-pro',
-      apiKey: _apiKey,
-      systemInstruction: Content.system(_systemPrompt),
-    );
-    _chat = _model.startChat();
   }
 
   void _addWelcomeMessage() {
     _messages.add({
-      'text': '🙏 Namaste! I am SaathChalo AI Assistant!\n\nI can help you with:\n\n🗺️ Find best routes\n💰 Calculate fare splits\n🚦 Best travel times\n🛡️ Safety tips\n💬 Carpooling advice\n\nHow can I help you today?',
+      'text':
+      '🙏 Namaste! I am SaathChalo AI!\n\nI can help you with:\n\n🗺️ Best carpool routes\n💰 Fare calculations\n🚦 Best travel times\n🛡️ Safety tips\n💬 Carpooling advice\n\nHow can I help you today?',
       'isUser': false,
       'isError': false,
     });
@@ -78,7 +58,7 @@ Constraints:
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isLoading) return;
 
     _messageController.clear();
 
@@ -94,29 +74,157 @@ Constraints:
     _scrollToBottom();
 
     try {
-      final response = await _chat.sendMessage(Content.text(text));
-      final responseText = response.text ?? 'Sorry, I could not understand that!';
+      // ✅ Add to conversation history for context
+      _conversationHistory.add({
+        'role': 'user',
+        'parts': [
+          {'text': text}
+        ],
+      });
 
-      setState(() {
-        _messages.add({
-          'text': responseText,
-          'isUser': false,
-          'isError': false,
-        });
-        _isLoading = false;
+      final url = Uri.parse('$_baseUrl?key=${Secrets.geminiApiKey}');
+
+      final requestBody = jsonEncode({
+        'system_instruction': {
+          'parts': [
+            {'text': _systemPrompt}
+          ]
+        },
+        'contents': _conversationHistory,
+        'generationConfig': {
+          'temperature': 0.7,
+          'maxOutputTokens': 800,
+          'topP': 0.8,
+          'topK': 40,
+        },
+        'safetySettings': [
+          {
+            'category': 'HARM_CATEGORY_HARASSMENT',
+            'threshold': 'BLOCK_ONLY_HIGH'
+          },
+          {
+            'category': 'HARM_CATEGORY_HATE_SPEECH',
+            'threshold': 'BLOCK_ONLY_HIGH'
+          },
+        ],
       });
+
+      debugPrint('Sending to Gemini API...');
+
+      final response = await http
+          .post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: requestBody,
+      )
+          .timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw Exception('timeout'),
+      );
+
+      debugPrint('Response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // ✅ Safe extraction of response text
+        final candidates = data['candidates'] as List?;
+        if (candidates == null || candidates.isEmpty) {
+          throw Exception('empty_response');
+        }
+
+        final content = candidates[0]['content'];
+        final parts = content['parts'] as List?;
+        if (parts == null || parts.isEmpty) {
+          throw Exception('empty_response');
+        }
+
+        final aiText = parts[0]['text']?.toString() ?? '';
+        if (aiText.isEmpty) throw Exception('empty_response');
+
+        // ✅ Add AI response to history
+        _conversationHistory.add({
+          'role': 'model',
+          'parts': [
+            {'text': aiText}
+          ],
+        });
+
+        // ✅ Keep history manageable (last 20 messages)
+        if (_conversationHistory.length > 20) {
+          _conversationHistory.removeAt(0);
+        }
+
+        if (mounted) {
+          setState(() {
+            _messages.add({
+              'text': aiText,
+              'isUser': false,
+              'isError': false,
+            });
+            _isLoading = false;
+          });
+        }
+      } else {
+        debugPrint('Error body: ${response.body}');
+        final error = jsonDecode(response.body);
+        final msg =
+            error['error']?['message'] ?? 'Status ${response.statusCode}';
+        throw Exception(msg);
+      }
     } catch (e) {
-      setState(() {
-        _messages.add({
-          'text': '❌ Sorry, I am having trouble connecting. Please check your internet and try again!',
-          'isUser': false,
-          'isError': true,
+      debugPrint('AI Error: $e');
+      if (mounted) {
+        // ✅ Remove last user message from history on error
+        if (_conversationHistory.isNotEmpty) {
+          _conversationHistory.removeLast();
+        }
+        setState(() {
+          _messages.add({
+            'text': _getErrorMessage(e.toString()),
+            'isUser': false,
+            'isError': true,
+          });
+          _isLoading = false;
         });
-        _isLoading = false;
-      });
+      }
     }
 
     _scrollToBottom();
+  }
+
+  String _getErrorMessage(String error) {
+    debugPrint('Error details: $error');
+    if (error.contains('timeout')) {
+      return '⏱️ Request timed out!\nPlease check your internet and try again.';
+    }
+    if (error.contains('API_KEY') ||
+        error.contains('apiKey') ||
+        error.contains('API key') ||
+        error.contains('400')) {
+      return '🔑 API Key issue!\nPlease check your Gemini API key.\n\nGet a new key from:\naistudio.google.com/app/apikey';
+    }
+    if (error.contains('quota') ||
+        error.contains('QUOTA') ||
+        error.contains('429') ||
+        error.contains('Resource has been exhausted')) {
+      return '📊 Daily limit reached!\nFree tier allows limited requests.\nPlease try again after some time!';
+    }
+    if (error.contains('network') ||
+        error.contains('Socket') ||
+        error.contains('connection') ||
+        error.contains('SocketException')) {
+      return '🌐 No internet connection!\nPlease check your network and try again.';
+    }
+    if (error.contains('empty_response')) {
+      return '🤔 I didn\'t get a response.\nPlease try asking again!';
+    }
+    if (error.contains('SAFETY')) {
+      return '⚠️ I cannot respond to that question.\nPlease ask something related to carpooling!';
+    }
+    return '❌ Something went wrong!\nPlease try again.\n\nDetails: $error';
   }
 
   void _scrollToBottom() {
@@ -131,14 +239,21 @@ Constraints:
     });
   }
 
-  // Quick suggestion questions
-  final List<String> _suggestions = [
-    '🗺️ Best route from Noida to Gurgaon?',
-    '💰 How to split fare for 3 people?',
-    '🚦 Best time to travel Delhi to Agra?',
-    '🛡️ Safety tips for women riders?',
-    '⏱️ How early should I book a ride?',
-    '🤝 Carpooling etiquette tips?',
+  void _clearChat() {
+    setState(() {
+      _messages.clear();
+      _conversationHistory.clear();
+      _addWelcomeMessage();
+    });
+  }
+
+  final List<Map<String, dynamic>> _suggestions = [
+    {'text': '🗺️ Best route Noida → Gurgaon?'},
+    {'text': '💰 Split ₹300 for 3 people?'},
+    {'text': '🚦 Best time to travel Delhi → Agra?'},
+    {'text': '🛡️ Safety tips for women riders?'},
+    {'text': '⏱️ How early to book a ride?'},
+    {'text': '🤝 Carpooling etiquette tips?'},
   ];
 
   @override
@@ -157,13 +272,15 @@ Constraints:
         foregroundColor: AppColors.white,
         elevation: 0,
         titleSpacing: 0,
+        automaticallyImplyLeading: false,
         title: Row(
           children: [
+            SizedBox(width: 16.w),
             Container(
               width: 36.w,
               height: 36.w,
               decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.2),
+                color: AppColors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.smart_toy_rounded,
@@ -193,10 +310,10 @@ Constraints:
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      'Powered by Gemini AI',
+                      'Powered by Gemini 2.0',
                       style: TextStyle(
                         fontSize: 10.sp,
-                        color: AppColors.white.withValues(alpha: 0.8),
+                        color: AppColors.white.withOpacity(0.8),
                       ),
                     ),
                   ],
@@ -207,26 +324,20 @@ Constraints:
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              setState(() {
-                _messages.clear();
-                _addWelcomeMessage();
-              });
-              _initializeAI(); // ← Fixed line outside setState
-            },
+            onPressed: _clearChat,
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'New Chat',
           ),
+          SizedBox(width: 8.w),
         ],
-
       ),
       body: Column(
         children: [
-          // Messages
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: EdgeInsets.all(16.w),
+              padding:
+              EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _messages.length && _isLoading) {
@@ -237,12 +348,10 @@ Constraints:
             ),
           ),
 
-          // Suggestions
-          if (_messages.length <= 2)
-            _buildSuggestions(),
+          // Suggestions — show only at start
+          if (_messages.length <= 2) _buildSuggestions(),
 
-          // Input
-          _buildInput(),
+          _buildInputBox(),
         ],
       ),
     );
@@ -264,11 +373,18 @@ Constraints:
               width: 32.w,
               height: 32.w,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: isError
+                    ? AppColors.error.withOpacity(0.1)
+                    : AppColors.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.smart_toy_rounded,
-                  color: AppColors.primary, size: 18.sp),
+              child: Icon(
+                isError
+                    ? Icons.error_outline_rounded
+                    : Icons.smart_toy_rounded,
+                color: isError ? AppColors.error : AppColors.primary,
+                size: 18.sp,
+              ),
             ),
             SizedBox(width: 8.w),
           ],
@@ -281,7 +397,7 @@ Constraints:
                 color: isUser
                     ? AppColors.primary
                     : isError
-                    ? AppColors.error.withValues(alpha: 0.1)
+                    ? AppColors.error.withOpacity(0.08)
                     : AppColors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16.r),
@@ -289,9 +405,13 @@ Constraints:
                   bottomLeft: Radius.circular(isUser ? 16.r : 4.r),
                   bottomRight: Radius.circular(isUser ? 4.r : 16.r),
                 ),
+                border: isError
+                    ? Border.all(
+                    color: AppColors.error.withOpacity(0.3))
+                    : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: Colors.black.withOpacity(0.06),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -312,15 +432,7 @@ Constraints:
             ),
           ),
 
-          if (isUser) ...[
-            SizedBox(width: 8.w),
-            CircleAvatar(
-              radius: 14.r,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Icon(Icons.person_rounded,
-                  color: AppColors.primary, size: 16.sp),
-            ),
-          ],
+          if (isUser) SizedBox(width: 8.w),
         ],
       ),
     );
@@ -335,7 +447,7 @@ Constraints:
             width: 32.w,
             height: 32.w,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: AppColors.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.smart_toy_rounded,
@@ -350,20 +462,15 @@ Constraints:
               borderRadius: BorderRadius.circular(16.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
+                  color: Colors.black.withOpacity(0.06),
                   blurRadius: 4,
                 ),
               ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDot(0),
-                SizedBox(width: 4.w),
-                _buildDot(1),
-                SizedBox(width: 4.w),
-                _buildDot(2),
-              ],
+              children: List.generate(
+                  3, (i) => _AnimatedDot(delay: i * 200)),
             ),
           ),
         ],
@@ -371,50 +478,33 @@ Constraints:
     );
   }
 
-  Widget _buildDot(int index) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 600 + (index * 200)),
-      builder: (context, value, child) {
-        return Container(
-          width: 8.w,
-          height: 8.w,
-          decoration: BoxDecoration(
-            color: AppColors.primary
-                .withValues(alpha: 0.3 + (value * 0.7)),
-            shape: BoxShape.circle,
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildSuggestions() {
-    return Container(
+    return SizedBox(
       height: 40.h,
-      margin: EdgeInsets.only(bottom: 8.h),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
+        padding:
+        EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
         itemCount: _suggestions.length,
         itemBuilder: (context, index) {
+          final s = _suggestions[index];
           return GestureDetector(
             onTap: () {
-              _messageController.text = _suggestions[index];
+              _messageController.text = s['text']!;
               _sendMessage();
             },
             child: Container(
               margin: EdgeInsets.only(right: 8.w),
               padding: EdgeInsets.symmetric(
-                  horizontal: 12.w, vertical: 8.h),
+                  horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20.r),
+                color: AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3)),
+                    color: AppColors.primary.withOpacity(0.25)),
               ),
               child: Text(
-                _suggestions[index],
+                s['text']!,
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: AppColors.primary,
@@ -428,14 +518,15 @@ Constraints:
     );
   }
 
-  Widget _buildInput() {
+  Widget _buildInputBox() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      padding:
+      EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -447,7 +538,7 @@ Constraints:
             Expanded(
               child: Container(
                 padding: EdgeInsets.symmetric(
-                    horizontal: 16.w, vertical: 8.h),
+                    horizontal: 14.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(24.r),
@@ -474,7 +565,8 @@ Constraints:
             SizedBox(width: 8.w),
             GestureDetector(
               onTap: _isLoading ? null : _sendMessage,
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 width: 46.w,
                 height: 46.w,
                 decoration: BoxDecoration(
@@ -495,6 +587,63 @@ Constraints:
           ],
         ),
       ),
+    );
+  }
+}
+
+// ✅ Animated typing dots
+class _AnimatedDot extends StatefulWidget {
+  final int delay;
+  const _AnimatedDot({required this.delay});
+
+  @override
+  State<_AnimatedDot> createState() => _AnimatedDotState();
+}
+
+class _AnimatedDotState extends State<_AnimatedDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+
+    _anim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) {
+        return Container(
+          width: 8.w,
+          height: 8.w + (_anim.value * 4),
+          margin: EdgeInsets.symmetric(horizontal: 2.w),
+          decoration: BoxDecoration(
+            color: AppColors.primary
+                .withOpacity(0.3 + (_anim.value * 0.7)),
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+        );
+      },
     );
   }
 }

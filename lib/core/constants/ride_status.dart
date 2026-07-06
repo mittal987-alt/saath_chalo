@@ -7,6 +7,7 @@ class RideStatus {
 
   // Booking statuses
   static const String pending = 'pending';
+  static const String accepted = 'accepted';
   static const String confirmed = 'confirmed';
   static const String enRoute = 'en_route';
   static const String started = 'started';
@@ -17,6 +18,7 @@ class RideStatus {
   static String getLabel(String status) {
     switch (status) {
       case pending: return 'Waiting for Driver';
+      case accepted:
       case confirmed: return 'Booking Confirmed ✅';
       case enRoute: return 'Driver Coming 🚗';
       case started: return 'Ride Started 🟢';
@@ -28,6 +30,7 @@ class RideStatus {
 
   static String getDriverLabel(String status) {
     switch (status) {
+      case accepted:
       case confirmed: return 'Go to Pickup Point';
       case enRoute: return 'Heading to Rider';
       case started: return 'Ride in Progress';

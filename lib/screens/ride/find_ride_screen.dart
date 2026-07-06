@@ -617,8 +617,11 @@ class _LiveRideCardState extends State<_LiveRideCard> {
     try {
       final user = FirebaseAuth.instance.currentUser;
 
-      print('DEBUG: Current UID = ${user?.uid}');
-      print('DEBUG: Current Name = ${user?.displayName}');
+      String riderName = user?.displayName ?? '';
+      if (riderName.isEmpty) {
+        // Try email prefix as fallback
+        riderName = user?.email?.split('@').first ?? 'Rider';
+      }
       final bookingId =
       DateTime.now().millisecondsSinceEpoch.toString();
 
@@ -626,8 +629,8 @@ class _LiveRideCardState extends State<_LiveRideCard> {
       final booking = BookingModel(
         bookingId: bookingId,
         rideId: widget.rideId,
-        riderUid: user?.uid ?? '',        // ✅ Must match logged in user
-        riderName: user?.displayName ?? 'Rider',
+        riderUid: user?.uid ?? '',
+        riderName: riderName,          // ✅ Never empty now
         riderPhone: user?.phoneNumber ?? '',
         driverUid: driverUid,
         driverName: driverName,

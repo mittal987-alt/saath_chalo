@@ -22,6 +22,8 @@ dependencies:
   geolocator: ^10.1.0
   geocoding: ^2.1.1
   google_generative_ai: ^0.4.3
+  url_launcher: ^6.2.5
+  share_plus: ^7.2.1
 
   # State Management
   provider: ^6.1.1
@@ -31,13 +33,13 @@ dependencies:
   google_fonts: ^6.1.0
   lottie: ^2.7.0
 
+
   # Utils
   intl: ^0.18.1
   shared_preferences: ^2.2.2
   image_picker: ^1.0.5
   http: ^1.1.0
   uuid: ^4.2.1
-  url_launcher: ^6.2.1
 
 dev_dependencies:
   flutter_test:

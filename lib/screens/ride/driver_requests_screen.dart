@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
 import '../payment/payment_screen.dart';
+import '../chat/ride_chat_screen.dart';
 
 class DriverRequestsScreen extends StatelessWidget {
   const DriverRequestsScreen({super.key});
@@ -123,7 +124,9 @@ class _RequestCardState extends State<_RequestCard> {
       widget.booking.rideId,
       widget.booking.seatsBooked,
     );
-    setState(() => _isAccepting = false);
+    if (mounted) {
+      setState(() => _isAccepting = false);
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -177,7 +180,9 @@ class _RequestCardState extends State<_RequestCard> {
     setState(() => _isRejecting = true);
     await FirebaseService()
         .rejectBookingRequest(widget.booking.bookingId);
-    setState(() => _isRejecting = false);
+    if (mounted) {
+      setState(() => _isRejecting = false);
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -328,6 +333,7 @@ class _RequestCardState extends State<_RequestCard> {
                       style: TextStyle(color: AppColors.error)),
                 ),
               ),
+
               SizedBox(width: 12.w),
               Expanded(
                 child: ElevatedButton.icon(
@@ -349,6 +355,31 @@ class _RequestCardState extends State<_RequestCard> {
                 ),
               ),
             ],
+          ),
+
+          // Chat with Rider button
+          SizedBox(height: 12.h),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RideChatScreen(
+                  booking: widget.booking,
+                  isDriver: true,
+                ),
+              ),
+            ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: Size(double.infinity, 40.h),
+              side: const BorderSide(color: AppColors.primary),
+            ),
+            icon: Icon(Icons.chat_rounded,
+                color: AppColors.primary, size: 16.sp),
+            label: Text(
+              'Chat with ${widget.booking.riderName.isEmpty ? 'Rider' : widget.booking.riderName}',
+              style: TextStyle(
+                  color: AppColors.primary, fontSize: 13.sp),
+            ),
           ),
         ],
       ),
