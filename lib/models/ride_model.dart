@@ -18,6 +18,10 @@ class RideModel {
   final int availableSeats;
   final double pricePerSeat;
   final bool womenOnly;
+  final bool musicAllowed;
+  final bool petsAllowed;
+  final bool smokingAllowed;
+  final bool acPreferred;
   final String status;
   final DateTime createdAt;
 
@@ -39,6 +43,10 @@ class RideModel {
     required this.availableSeats,
     required this.pricePerSeat,
     this.womenOnly = false,
+    this.musicAllowed = true,
+    this.petsAllowed = false,
+    this.smokingAllowed = false,
+    this.acPreferred = true,
     this.status = 'active',
     required this.createdAt,
   });
@@ -63,6 +71,12 @@ class RideModel {
       'availableSeats': availableSeats,
       'pricePerSeat': pricePerSeat,
       'womenOnly': womenOnly,
+      'preferences': {
+        'musicAllowed': musicAllowed,
+        'petsAllowed': petsAllowed,
+        'smokingAllowed': smokingAllowed,
+        'acPreferred': acPreferred,
+      },
       'status': status,
       'createdAt': FieldValue.serverTimestamp(), // ✅ Always server time
     };
@@ -70,6 +84,7 @@ class RideModel {
 
   // ✅ Read from Firestore — handles Timestamp, String & null
   factory RideModel.fromMap(Map<String, dynamic> map) {
+    final prefs = map['preferences'] as Map<String, dynamic>?;
     return RideModel(
       rideId: map['rideId'] ?? '',
       driverUid: map['driverUid'] ?? '',
@@ -88,6 +103,10 @@ class RideModel {
       availableSeats: map['availableSeats'] ?? 1,
       pricePerSeat: (map['pricePerSeat'] ?? 0.0).toDouble(),
       womenOnly: map['womenOnly'] ?? false,
+      musicAllowed: prefs?['musicAllowed'] ?? true,
+      petsAllowed: prefs?['petsAllowed'] ?? false,
+      smokingAllowed: prefs?['smokingAllowed'] ?? false,
+      acPreferred: prefs?['acPreferred'] ?? true,
       status: map['status'] ?? 'active',
       createdAt: _parseDate(map['createdAt']),
     );
@@ -126,6 +145,10 @@ class RideModel {
     int? availableSeats,
     double? pricePerSeat,
     bool? womenOnly,
+    bool? musicAllowed,
+    bool? petsAllowed,
+    bool? smokingAllowed,
+    bool? acPreferred,
     String? status,
     DateTime? createdAt,
   }) {
@@ -147,6 +170,10 @@ class RideModel {
       availableSeats: availableSeats ?? this.availableSeats,
       pricePerSeat: pricePerSeat ?? this.pricePerSeat,
       womenOnly: womenOnly ?? this.womenOnly,
+      musicAllowed: musicAllowed ?? this.musicAllowed,
+      petsAllowed: petsAllowed ?? this.petsAllowed,
+      smokingAllowed: smokingAllowed ?? this.smokingAllowed,
+      acPreferred: acPreferred ?? this.acPreferred,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
     );

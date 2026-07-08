@@ -1,13 +1,18 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/user_model.dart';
 import '../models/ride_model.dart';
 import '../models/ride_alert_model.dart';
 import '../models/booking_model.dart';
+import '../models/report_model.dart';
+import '../models/review_model.dart';
 
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // Current User
   User? get currentUser => _auth.currentUser;
@@ -15,6 +20,16 @@ class FirebaseService {
   // ==================
   // USER METHODS
   // ==================
+
+  Future<String?> uploadProfilePic(String uid, File imageFile) async {
+    try {
+      final ref = _storage.ref().child('profile_pics').child('$uid.jpg');
+      await ref.putFile(imageFile);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      return null;
+    }
+  }
 
   Future<void> saveUser(UserModel user) async {
     await _db.collection('users').doc(user.uid).set(user.toMap());
@@ -184,6 +199,7 @@ class FirebaseService {
     return _db
         .collection('bookings')
         .where('riderUid', isEqualTo: riderUid)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
         .map((doc) => BookingModel.fromMap(doc.data()))
@@ -289,6 +305,39 @@ class FirebaseService {
         .collection('bookings')
         .doc(bookingId)
         .update({'status': status});
+  }
+
+  Future<void> cancelBooking({
+    required String bookingId,
+    required String rideId,
+    required int seatsToReturn,
+    required bool wasAccepted,
+  }) async {
+    final batch = _db.batch();
+    batch.update(_db.collection('bookings').doc(bookingId), {
+      'status': 'cancelled',
+    });
+
+    if (wasAccepted) {
+      batch.update(_db.collection('rides').doc(rideId), {
+        'availableSeats': FieldValue.increment(seatsToReturn),
+        'status': 'active',
+      });
+    }
+
+    await batch.commit();
+
+    final bookingDoc = await _db.collection('bookings').doc(bookingId).get();
+    if (bookingDoc.exists) {
+      final booking = BookingModel.fromMap(bookingDoc.data()!);
+      await sendNotification(
+        toUid: booking.driverUid,
+        title: 'Ride Booking Cancelled ❌',
+        body: '${booking.riderName} cancelled their booking for ${booking.from} → ${booking.to}',
+        type: 'ride_cancelled',
+        data: {'rideId': rideId},
+      );
+    }
   }
 
   Future<void> completeRide(String bookingId, String rideId) async {
@@ -505,5 +554,76 @@ class FirebaseService {
         .collection('settings')
         .doc('safety')
         .set(settings, SetOptions(merge: true));
+  }
+
+  // ==================
+  // REPORTING METHODS
+  // ==================
+
+  Future<void> submitReport(ReportModel report) async {
+    await _db.collection('reports').doc(report.reportId).set(report.toMap());
+
+    // Notify admin
+    await sendNotification(
+      toUid: 'admin_panel',
+      title: 'New Report Submitted ⚠️',
+      body: 'A new ${report.type} report has been filed by ${report.reporterName}.',
+      type: 'admin_report',
+      data: {'reportId': report.reportId},
+    );
+  }
+
+  Future<void> updateReportStatus({
+    required String reportId,
+    required String status,
+    required String reporterId,
+  }) async {
+    await _db.collection('reports').doc(reportId).update({'status': status});
+
+    await sendNotification(
+      toUid: reporterId,
+      title: 'Report Update 📋',
+      body: 'Your report status has been updated to: $status.',
+      type: 'report_update',
+      data: {'reportId': reportId, 'status': status},
+    );
+  }
+
+  // ==================
+  // REVIEW METHODS
+  // ==================
+
+  Stream<List<ReviewModel>> getFlaggedReviews() {
+    return _db
+        .collection('reviews')
+        .where('status', isEqualTo: 'flagged')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => ReviewModel.fromMap(doc.data()))
+        .toList());
+  }
+
+  Future<void> updateReviewStatus(
+    String reviewId,
+    String status, {
+    String? note,
+    String? reviewerId,
+  }) async {
+    await _db.collection('reviews').doc(reviewId).update({
+      'status': status,
+      if (note != null) 'moderationNote': note,
+    });
+
+    if (reviewerId != null) {
+      await sendNotification(
+        toUid: reviewerId,
+        title: status == 'approved' ? 'Review Approved ✅' : 'Review Rejected ❌',
+        body: status == 'approved'
+            ? 'Your review has been approved and is now public.'
+            : 'Your review was rejected for violating our community guidelines.',
+        type: 'review_moderation',
+        data: {'reviewId': reviewId, 'status': status},
+      );
+    }
   }
 }

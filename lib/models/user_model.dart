@@ -5,6 +5,7 @@ class UserModel {
   final String name;
   final String phone;
   final String email;
+  final String bio;
   final String profilePic;
   final double rating;
   final int totalRides;
@@ -13,6 +14,10 @@ class UserModel {
   final String fcmToken;
   final double totalMoneySaved;
   final double totalCo2Saved;
+  final bool musicAllowed;
+  final bool petsAllowed;
+  final bool smokingAllowed;
+  final bool acPreferred;
   final DateTime createdAt;
 
   UserModel({
@@ -20,6 +25,7 @@ class UserModel {
     required this.name,
     required this.phone,
     this.email = '',
+    this.bio = '',
     this.profilePic = '',
     this.rating = 5.0,
     this.totalRides = 0,
@@ -28,6 +34,10 @@ class UserModel {
     this.fcmToken = '',
     this.totalMoneySaved = 0.0,
     this.totalCo2Saved = 0.0,
+    this.musicAllowed = true,
+    this.petsAllowed = false,
+    this.smokingAllowed = false,
+    this.acPreferred = true,
     required this.createdAt,
   });
 
@@ -37,6 +47,7 @@ class UserModel {
       'name': name,
       'phone': phone,
       'email': email,
+      'bio': bio,
       'profilePic': profilePic,
       'rating': rating,
       'totalRides': totalRides,
@@ -45,16 +56,24 @@ class UserModel {
       'fcmToken': fcmToken,
       'totalMoneySaved': totalMoneySaved,
       'totalCo2Saved': totalCo2Saved,
+      'preferences': {
+        'musicAllowed': musicAllowed,
+        'petsAllowed': petsAllowed,
+        'smokingAllowed': smokingAllowed,
+        'acPreferred': acPreferred,
+      },
       'createdAt': FieldValue.serverTimestamp(), // ✅ Server time
     };
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
+    final prefs = map['preferences'] as Map<String, dynamic>?;
     return UserModel(
       uid: map['uid'] ?? '',
       name: map['name'] ?? '',
       phone: map['phone'] ?? '',
       email: map['email'] ?? '',
+      bio: map['bio'] ?? '',
       profilePic: map['profilePic'] ?? '',
       rating: (map['rating'] ?? 5.0).toDouble(),
       totalRides: map['totalRides'] ?? 0,
@@ -63,6 +82,10 @@ class UserModel {
       fcmToken: map['fcmToken'] ?? '',
       totalMoneySaved: (map['totalMoneySaved'] ?? 0.0).toDouble(),
       totalCo2Saved: (map['totalCo2Saved'] ?? 0.0).toDouble(),
+      musicAllowed: prefs?['musicAllowed'] ?? true,
+      petsAllowed: prefs?['petsAllowed'] ?? false,
+      smokingAllowed: prefs?['smokingAllowed'] ?? false,
+      acPreferred: prefs?['acPreferred'] ?? true,
       createdAt: _parseDate(map['createdAt']), // ✅ Safe parse
     );
   }
@@ -87,6 +110,7 @@ class UserModel {
     String? name,
     String? phone,
     String? email,
+    String? bio,
     String? profilePic,
     double? rating,
     int? totalRides,
@@ -95,6 +119,10 @@ class UserModel {
     String? fcmToken,
     double? totalMoneySaved,
     double? totalCo2Saved,
+    bool? musicAllowed,
+    bool? petsAllowed,
+    bool? smokingAllowed,
+    bool? acPreferred,
     DateTime? createdAt,
   }) {
     return UserModel(
@@ -102,6 +130,7 @@ class UserModel {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      bio: bio ?? this.bio,
       profilePic: profilePic ?? this.profilePic,
       rating: rating ?? this.rating,
       totalRides: totalRides ?? this.totalRides,
@@ -110,6 +139,10 @@ class UserModel {
       fcmToken: fcmToken ?? this.fcmToken,
       totalMoneySaved: totalMoneySaved ?? this.totalMoneySaved,
       totalCo2Saved: totalCo2Saved ?? this.totalCo2Saved,
+      musicAllowed: musicAllowed ?? this.musicAllowed,
+      petsAllowed: petsAllowed ?? this.petsAllowed,
+      smokingAllowed: smokingAllowed ?? this.smokingAllowed,
+      acPreferred: acPreferred ?? this.acPreferred,
       createdAt: createdAt ?? this.createdAt,
     );
   }

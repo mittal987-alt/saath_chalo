@@ -9,6 +9,7 @@ import '../../services/firebase_services.dart';
 import '../../core/constants/secrets.dart';
 
 class PaymentScreen extends StatefulWidget {
+  final BookingModel? booking;
   final String rideId;
   final String driverName;
   final String from;
@@ -19,11 +20,12 @@ class PaymentScreen extends StatefulWidget {
 
   const PaymentScreen({
     super.key,
-    required this.rideId,
-    required this.driverName,
-    required this.from,
-    required this.to,
-    required this.amount,
+    this.booking,
+    this.rideId = '',
+    this.driverName = '',
+    this.from = '',
+    this.to = '',
+    this.amount = 0,
     this.seats = 1,
     this.pricePerSeat = 0,
   });
@@ -39,7 +41,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final User? _user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  double get totalAmount => widget.amount;
+  String get rideId => widget.booking?.rideId ?? widget.rideId;
+  String get driverName => widget.booking?.driverName ?? widget.driverName;
+  String get from => widget.booking?.from ?? widget.from;
+  String get to => widget.booking?.to ?? widget.to;
+  double get amount => widget.booking?.totalPrice ?? widget.amount;
+  int get seats => widget.booking?.seats ?? widget.seats;
+  double get pricePerSeat => widget.booking?.pricePerSeat ?? widget.pricePerSeat;
+
+  double get totalAmount => amount;
   double get platformFee => totalAmount * 0.05;
   double get finalTotal => totalAmount + platformFee;
 
@@ -60,7 +70,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     // 1. Save payment to Firestore
     await _db.collection('payments').add({
-      'rideId': widget.rideId,
+      'rideId': rideId,
       'userId': _user?.uid,
       'paymentId': response.paymentId,
       'orderId': response.orderId,
@@ -70,29 +80,33 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    // 2. Book seat (decrement availableSeats)
-    await firebaseService.bookSeat(widget.rideId, widget.seats);
+    // 2. Book seat (decrement availableSeats) if not already booked
+    if (widget.booking == null) {
+      await firebaseService.bookSeat(rideId, seats);
+    } else {
+      await firebaseService.markBookingPaid(widget.booking!.bookingId);
+    }
 
     // 3. Update User Stats (Money Saved & CO2 Saved)
     if (_user != null) {
       await _db.collection('users').doc(_user!.uid).update({
         'totalMoneySaved': FieldValue.increment(finalTotal),
-        'totalCo2Saved': FieldValue.increment(1.5 * widget.seats),
+        'totalCo2Saved': FieldValue.increment(1.5 * seats),
         'totalRides': FieldValue.increment(1),
       });
     }
 
     // 4. Send notification to driver
-    final rideDoc = await _db.collection('rides').doc(widget.rideId).get();
+    final rideDoc = await _db.collection('rides').doc(rideId).get();
     final driverUid = rideDoc.data()?['driverUid'];
 
     if (driverUid != null) {
       await firebaseService.sendNotification(
         toUid: driverUid,
         title: 'Payment Received! 💰',
-        body: '${_user?.displayName ?? 'A rider'} paid ₹${finalTotal.toStringAsFixed(0)} for ${widget.seats} seat(s).',
+        body: '${_user?.displayName ?? 'A rider'} paid ₹${finalTotal.toStringAsFixed(0)} for $seats seat(s).',
         type: 'payment',
-        data: {'rideId': widget.rideId},
+        data: {'rideId': rideId},
       );
     }
 
@@ -165,7 +179,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     try {
       // 1. Save payment record
       await _db.collection('payments').add({
-        'rideId': widget.rideId,
+        'rideId': rideId,
         'userId': _user?.uid,
         'amount': finalTotal,
         'status': 'pending_cash',
@@ -173,28 +187,33 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      // 2. Book seats
-      await firebaseService.bookSeat(widget.rideId, widget.seats);
+      // 2. Book seats if not already booked
+      if (widget.booking == null) {
+        await firebaseService.bookSeat(rideId, seats);
+      } else {
+        // Just update status to paid if they are paying now (though cash is usually end of ride)
+        await firebaseService.markBookingPaid(widget.booking!.bookingId);
+      }
 
       // 3. Update User Stats
       if (_user != null) {
         await _db.collection('users').doc(_user!.uid).update({
           'totalMoneySaved': FieldValue.increment(finalTotal),
-          'totalCo2Saved': FieldValue.increment(1.5 * widget.seats),
+          'totalCo2Saved': FieldValue.increment(1.5 * seats),
           'totalRides': FieldValue.increment(1),
         });
       }
 
       // 4. Notify Driver
-      final rideDoc = await _db.collection('rides').doc(widget.rideId).get();
+      final rideDoc = await _db.collection('rides').doc(rideId).get();
       final driverUid = rideDoc.data()?['driverUid'];
       if (driverUid != null) {
         await firebaseService.sendNotification(
           toUid: driverUid,
           title: 'New Cash Booking! 💵',
-          body: '${_user?.displayName ?? 'A rider'} booked ${widget.seats} seat(s). Please collect ₹${finalTotal.toStringAsFixed(0)} at the end of the ride.',
+          body: '${_user?.displayName ?? 'A rider'} booked $seats seat(s). Please collect ₹${finalTotal.toStringAsFixed(0)} at the end of the ride.',
           type: 'payment_cash',
-          data: {'rideId': widget.rideId},
+          data: {'rideId': rideId},
         );
       }
 
@@ -272,7 +291,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'key': Secrets.razorpayKey,
       'amount': (finalTotal * 100).toInt(), // Amount in paise
       'name': 'SaathChalo',
-      'description': '${widget.from} → ${widget.to} (${widget.seats} seats)',
+      'description': '$from → $to ($seats seats)',
       'prefill': {
         'contact': _user?.phoneNumber ?? '',
         'email': _user?.email ?? '',
@@ -281,8 +300,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'color': '#00A86B',
       },
       'notes': {
-        'ride_id': widget.rideId,
-        'driver_name': widget.driverName,
+        'ride_id': rideId,
+        'driver_name': driverName,
       }
     };
 
@@ -420,7 +439,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.driverName,
+                  Text(driverName,
                       style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
@@ -461,13 +480,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.from,
+                  Text(from,
                       style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary)),
                   SizedBox(height: 12.h),
-                  Text(widget.to,
+                  Text(to,
                       style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
@@ -507,7 +526,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   fontSize: 16.sp, fontWeight: FontWeight.bold)),
           SizedBox(height: 16.h),
           _buildPriceRow(
-              'Ride Fare (${widget.seats} seat${widget.seats > 1 ? 's' : ''} × ₹${widget.pricePerSeat.toStringAsFixed(0)})',
+              'Ride Fare ($seats seat${seats > 1 ? 's' : ''} × ₹${pricePerSeat.toStringAsFixed(0)})',
               '₹${subtotal.toStringAsFixed(0)}'),
           SizedBox(height: 8.h),
           _buildPriceRow('Platform Fee (5%)',

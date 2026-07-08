@@ -91,6 +91,7 @@ class ReviewsScreen extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('reviews')
           .where('reviewedUserId', isEqualTo: userId)
+          .where('status', isEqualTo: 'approved')
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {

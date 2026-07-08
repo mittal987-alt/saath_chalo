@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/review_model.dart';
+import '../../services/moderation_service.dart';
+import '../profile/report_issue_screen.dart';
 
 class RatingScreen extends StatefulWidget {
   final String rideId;
@@ -65,6 +67,9 @@ class _RatingScreenState extends State<RatingScreen> {
           ? '${_selectedTags.join(', ')}. ${_commentController.text}'
           : _commentController.text;
 
+      // Automated Moderation
+      final moderationResult = ModerationService.moderateContent(comment);
+
       final review = ReviewModel(
         reviewId: reviewId,
         reviewerId: _user?.uid ?? '',
@@ -74,6 +79,8 @@ class _RatingScreenState extends State<RatingScreen> {
         rating: _rating,
         comment: comment,
         createdAt: DateTime.now(),
+        status: moderationResult['status'],
+        moderationNote: moderationResult['note'],
       );
 
       // Save review
@@ -247,6 +254,24 @@ class _RatingScreenState extends State<RatingScreen> {
                   : const Icon(Icons.send_rounded),
               label: Text(
                   _isLoading ? 'Submitting...' : 'Submit Review'),
+            ),
+
+            SizedBox(height: 16.h),
+
+            // Report Issue Link
+            TextButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ReportIssueScreen(
+                    reportedId: widget.driverUid,
+                    type: 'user',
+                    metadata: {'rideId': widget.rideId},
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.report_problem_outlined, color: AppColors.error),
+              label: const Text('Report an issue with this driver', style: TextStyle(color: AppColors.error)),
             ),
 
             SizedBox(height: 32.h),

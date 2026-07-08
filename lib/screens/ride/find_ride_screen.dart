@@ -295,6 +295,13 @@ class _LiveRideCardState extends State<_LiveRideCard> {
         final double driverRating =
         (d['driverRating'] ?? 5.0).toDouble();
 
+        // Preferences
+        final bool musicAllowed = d['preferences']?['musicAllowed'] ?? d['musicAllowed'] ?? true;
+        final bool petsAllowed = d['preferences']?['petsAllowed'] ?? d['petsAllowed'] ?? false;
+        final bool smokingAllowed = d['preferences']?['smokingAllowed'] ?? d['smokingAllowed'] ?? false;
+        final bool acPreferred = d['preferences']?['acPreferred'] ?? d['acPreferred'] ?? true;
+        final bool womenOnly = d['womenOnly'] ?? false;
+
         if (availableSeats <= 0) return const SizedBox.shrink();
 
         // Clamp selector if seats reduced live
@@ -486,6 +493,40 @@ class _LiveRideCardState extends State<_LiveRideCard> {
                 ),
               ),
 
+              SizedBox(height: 12.h),
+
+              // Preferences row
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    if (womenOnly)
+                      _buildPrefChip('Women Only', Icons.woman_rounded, Colors.pink),
+                    _buildPrefChip(
+                      musicAllowed ? 'Music' : 'No Music',
+                      musicAllowed ? Icons.music_note_rounded : Icons.music_off_rounded,
+                      musicAllowed ? Colors.blue : Colors.grey,
+                    ),
+                    _buildPrefChip(
+                      petsAllowed ? 'Pets' : 'No Pets',
+                      petsAllowed ? Icons.pets_rounded : Icons.not_interested_rounded,
+                      petsAllowed ? Colors.orange : Colors.grey,
+                    ),
+                    _buildPrefChip(
+                      smokingAllowed ? 'Smoking' : 'No Smoking',
+                      smokingAllowed ? Icons.smoking_rooms_rounded : Icons.smoke_free_rounded,
+                      smokingAllowed ? Colors.red : Colors.grey,
+                    ),
+                    _buildPrefChip(
+                      acPreferred ? 'AC' : 'No AC',
+                      acPreferred ? Icons.ac_unit_rounded : Icons.toys_rounded,
+                      acPreferred ? Colors.cyan : Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+
               SizedBox(height: 16.h),
 
               // ✅ Seat selector — clamped to availableSeats
@@ -602,6 +643,33 @@ class _LiveRideCardState extends State<_LiveRideCard> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildPrefChip(String label, IconData icon, Color color) {
+    return Container(
+      margin: EdgeInsets.only(right: 8.w),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12.sp, color: color),
+          SizedBox(width: 4.w),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -10,6 +10,8 @@ class ReviewModel {
   final String comment;
   final List<String> tags;
   final DateTime createdAt;
+  final String status; // 'approved', 'flagged', 'rejected'
+  final String? moderationNote;
 
   ReviewModel({
     required this.reviewId,
@@ -21,6 +23,8 @@ class ReviewModel {
     required this.comment,
     this.tags = const [],
     required this.createdAt,
+    this.status = 'approved',
+    this.moderationNote,
   });
 
   Map<String, dynamic> toMap() {
@@ -34,6 +38,8 @@ class ReviewModel {
       'comment': comment,
       'tags': tags,
       'createdAt': FieldValue.serverTimestamp(), // ✅ Server time
+      'status': status,
+      'moderationNote': moderationNote,
     };
   }
 
@@ -48,6 +54,8 @@ class ReviewModel {
       comment: map['comment'] ?? '',
       tags: List<String>.from(map['tags'] ?? []),
       createdAt: _parseDate(map['createdAt']), // ✅ Safe parse
+      status: map['status'] ?? 'approved',
+      moderationNote: map['moderationNote'],
     );
   }
 
@@ -76,6 +84,8 @@ class ReviewModel {
     String? comment,
     List<String>? tags,
     DateTime? createdAt,
+    String? status,
+    String? moderationNote,
   }) {
     return ReviewModel(
       reviewId: reviewId ?? this.reviewId,
@@ -87,6 +97,8 @@ class ReviewModel {
       comment: comment ?? this.comment,
       tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
+      moderationNote: moderationNote ?? this.moderationNote,
     );
   }
 

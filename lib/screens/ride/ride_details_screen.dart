@@ -9,6 +9,7 @@ import 'driver_requests_screen.dart';
 import 'active_ride_screen.dart';
 import '../chat/ride_chat_screen.dart';
 import 'ride_sharing_screen.dart';
+import '../profile/report_issue_screen.dart';
 
 class RideDetailScreen extends StatelessWidget {
   final RideModel ride;
@@ -67,6 +68,18 @@ class RideDetailScreen extends StatelessWidget {
                 ],
               );
             },
+          ),
+          IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ReportIssueScreen(
+                  reportedId: ride.rideId,
+                  type: 'ride',
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.report_problem_outlined),
           ),
         ],
       ),
@@ -291,6 +304,15 @@ class RideDetailScreen extends StatelessWidget {
               '₹${ride.pricePerSeat.toStringAsFixed(0)}'),
           _buildDetailRow(Icons.woman_rounded, 'Women Only',
               ride.womenOnly ? 'Yes 👩' : 'No'),
+          const Divider(),
+          _buildDetailRow(Icons.music_note_rounded, 'Music Allowed',
+              ride.musicAllowed ? 'Yes 🎵' : 'No'),
+          _buildDetailRow(Icons.pets_rounded, 'Pets Allowed',
+              ride.petsAllowed ? 'Yes 🐾' : 'No'),
+          _buildDetailRow(Icons.smoking_rooms_rounded, 'Smoking Allowed',
+              ride.smokingAllowed ? 'Yes 🚬' : 'No'),
+          _buildDetailRow(Icons.ac_unit_rounded, 'AC Preferred',
+              ride.acPreferred ? 'Yes ❄️' : 'No'),
           _buildDetailRow(Icons.info_rounded, 'Status', ride.status.toUpperCase()),
         ],
       ),
@@ -434,6 +456,24 @@ class RideDetailScreen extends StatelessWidget {
                               color: _statusColor(b.status),
                             ),
                           ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ReportIssueScreen(
+                                reportedId: b.riderUid,
+                                type: 'user',
+                                metadata: {
+                                  'rideId': ride.rideId,
+                                  'bookingId': b.bookingId,
+                                },
+                              ),
+                            ),
+                          ),
+                          icon: Icon(Icons.report_problem_outlined, color: AppColors.error, size: 18.sp),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),

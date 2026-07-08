@@ -25,7 +25,32 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
   TimeOfDay _selectedTime = TimeOfDay.now();
   int _seats = 1;
   bool _womenOnly = false;
+  bool _musicAllowed = true;
+  bool _petsAllowed = false;
+  bool _smokingAllowed = false;
+  bool _acPreferred = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserDefaults();
+  }
+
+  void _loadUserDefaults() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final user = await FirebaseService().getUser(uid);
+      if (user != null && mounted) {
+        setState(() {
+          _musicAllowed = user.musicAllowed;
+          _petsAllowed = user.petsAllowed;
+          _smokingAllowed = user.smokingAllowed;
+          _acPreferred = user.acPreferred;
+        });
+      }
+    }
+  }
 
   void _offerRide() async {
     if (_fromController.text.isEmpty ||
@@ -61,6 +86,10 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         availableSeats: _seats,
         pricePerSeat: double.parse(_priceController.text),
         womenOnly: _womenOnly,
+        musicAllowed: _musicAllowed,
+        petsAllowed: _petsAllowed,
+        smokingAllowed: _smokingAllowed,
+        acPreferred: _acPreferred,
         createdAt: DateTime.now(),
       );
 
@@ -448,33 +477,42 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                   SizedBox(height: 16.h),
                   _buildSectionCard(
                     title: '⚙️ Preferences',
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Women Only Ride 👩',
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              'Only women can request this ride',
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Switch(
+                        _buildPreferenceToggle(
+                          title: 'Women Only Ride 👩',
+                          subtitle: 'Only women can request this ride',
                           value: _womenOnly,
                           onChanged: (val) => setState(() => _womenOnly = val),
-                          activeThumbColor: AppColors.primary,
+                        ),
+                        const Divider(),
+                        _buildPreferenceToggle(
+                          title: 'Music Allowed 🎵',
+                          subtitle: 'Can passengers play music?',
+                          value: _musicAllowed,
+                          onChanged: (val) =>
+                              setState(() => _musicAllowed = val),
+                        ),
+                        _buildPreferenceToggle(
+                          title: 'Pets Allowed 🐾',
+                          subtitle: 'Can passengers bring pets?',
+                          value: _petsAllowed,
+                          onChanged: (val) =>
+                              setState(() => _petsAllowed = val),
+                        ),
+                        _buildPreferenceToggle(
+                          title: 'Smoking Allowed 🚬',
+                          subtitle: 'Is smoking allowed in the car?',
+                          value: _smokingAllowed,
+                          onChanged: (val) =>
+                              setState(() => _smokingAllowed = val),
+                        ),
+                        _buildPreferenceToggle(
+                          title: 'AC Preferred ❄️',
+                          subtitle: 'Will the AC be switched on?',
+                          value: _acPreferred,
+                          onChanged: (val) =>
+                              setState(() => _acPreferred = val),
                         ),
                       ],
                     ),
@@ -558,6 +596,50 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         fontSize: 13.sp,
         fontWeight: FontWeight.w600,
         color: AppColors.textSecondary,
+      ),
+    );
+  }
+
+  Widget _buildPreferenceToggle({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppColors.primary.withValues(alpha: 0.2),
+            activeColor: AppColors.primary,
+          ),
+        ],
       ),
     );
   }

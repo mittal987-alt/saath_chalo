@@ -12,6 +12,7 @@ import 'edit_profile_screen.dart';
 import 'ride_history_screen.dart';
 import 'emergency_contact_screen.dart';
 import 'notification_screen.dart';
+import '../driver/earnings_dashboard_screen.dart';
 import 'safety_settings_screen.dart';
 import 'sos_settings_screen.dart';
 import '../payment/payment_history_screen.dart';
@@ -256,9 +257,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle('Account'),
-          _buildMenuItem(Icons.person_rounded, 'Edit Profile', AppColors.primary, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+          _buildMenuItem(Icons.person_rounded, 'Edit Profile', AppColors.primary, () async {
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+            _fetchUserData();
           }),
+          _buildMenuItem(
+            Icons.account_balance_wallet_rounded,
+            'My Earnings 💰',
+            AppColors.success,
+                () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const EarningsDashboardScreen()),
+            ),
+          ),
           _buildMenuItem(Icons.phone_rounded, 'Phone Number', AppColors.primary, () {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Phone: ${_user?.phoneNumber ?? "Not set"}')),

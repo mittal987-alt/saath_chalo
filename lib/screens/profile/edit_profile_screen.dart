@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/firebase_services.dart';
 
@@ -20,6 +22,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
   final User? _user = FirebaseAuth.instance.currentUser;
 
+  File? _imageFile;
+  String? _profilePicUrl;
+  final ImagePicker _picker = ImagePicker();
+
+  String _initialPhone = '';
+  String _initialEmail = '';
+  String _verificationId = '';
+
+  // Preferences state
+  bool _musicAllowed = true;
+  bool _petsAllowed = false;
+  bool _smokingAllowed = false;
+  bool _acPreferred = true;
+
   @override
   void initState() {
     super.initState();
@@ -29,15 +45,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadUserData() async {
     _nameController.text = _user?.displayName ?? '';
     _emailController.text = _user?.email ?? '';
+    _initialEmail = _user?.email ?? '';
 
     final userData = await FirebaseService().getUser(_user?.uid ?? '');
     if (userData != null) {
       _phoneController.text = userData.phone;
+      _initialPhone = userData.phone;
+      _bioController.text = userData.bio;
+      _profilePicUrl = userData.profilePic;
+
+      // Load preferences if saved
+      // (Add more fields to UserModel if needed)
+      setState(() {
+        _musicAllowed = userData.musicAllowed;
+        _petsAllowed = userData.petsAllowed;
+        _smokingAllowed = userData.smokingAllowed;
+        _acPreferred = userData.acPreferred;
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
     }
   }
 
   Future<void> _saveProfile() async {
-    if (_nameController.text.trim().isEmpty) {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+    final bio = _bioController.text.trim();
+
+    if (name.isEmpty) {
       _showSnack('Please enter your name!', isError: true);
       return;
     }
@@ -45,19 +91,141 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _user?.updateDisplayName(_nameController.text.trim());
-      await FirebaseService().updateUser(_user?.uid ?? '', {
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-      });
+      String? updatedProfilePicUrl = _profilePicUrl;
 
-      setState(() => _isLoading = false);
-      _showSnack('Profile updated successfully!');
-      Navigator.pop(context);
+      // 0. Upload Image if changed
+      if (_imageFile != null) {
+        final uploadedUrl = await FirebaseService().uploadProfilePic(_user?.uid ?? '', _imageFile!);
+        if (uploadedUrl != null) {
+          updatedProfilePicUrl = uploadedUrl;
+        } else {
+          _showSnack('Failed to upload profile picture', isError: true);
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      // 1. Update profile info in Firestore (with nested preferences)
+      await FirebaseService().updateUser(_user?.uid ?? '', {
+        'name': name,
+        'bio': bio,
+        'profilePic': updatedProfilePicUrl ?? '',
+        'preferences': {
+          'musicAllowed': _musicAllowed,
+          'petsAllowed': _petsAllowed,
+          'smokingAllowed': _smokingAllowed,
+          'acPreferred': _acPreferred,
+        },
+      });
+      await _user?.updateDisplayName(name);
+      if (updatedProfilePicUrl != null) {
+        await _user?.updatePhotoURL(updatedProfilePicUrl);
+      }
+      await _user?.reload();
+
+      // 2. Check if Email changed
+      if (email != _initialEmail && email.isNotEmpty) {
+        await _user?.verifyBeforeUpdateEmail(email);
+        _showSnack('Verification link sent to $email. Please verify to update.');
+      }
+
+      // 3. Check if Phone changed (Triggers OTP)
+      if (phone != _initialPhone && phone.isNotEmpty) {
+        await _sendOTP(phone);
+        // We don't stop loading yet, the OTP dialog will handle the rest
+      } else {
+        setState(() => _isLoading = false);
+        _showSnack('Profile updated successfully!');
+        if (email == _initialEmail) Navigator.pop(context);
+      }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showSnack('Error updating profile!', isError: true);
+      _showSnack('Error updating profile: $e', isError: true);
     }
+  }
+
+  Future<void> _sendOTP(String phoneNumber) async {
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        await _user?.updatePhoneNumber(credential);
+        await FirebaseService().updateUser(_user?.uid ?? '', {'phone': phoneNumber});
+        if (mounted) {
+          setState(() => _isLoading = false);
+          _showSnack('Phone number verified and updated!');
+          Navigator.pop(context);
+        }
+      },
+      verificationFailed: (FirebaseAuthException e) {
+        setState(() => _isLoading = false);
+        _showSnack('Verification failed: ${e.message}', isError: true);
+      },
+      codeSent: (String verId, int? resendToken) {
+        _verificationId = verId;
+        setState(() => _isLoading = false);
+        _showOTPDialog(phoneNumber);
+      },
+      codeAutoRetrievalTimeout: (String verId) {
+        _verificationId = verId;
+      },
+    );
+  }
+
+  void _showOTPDialog(String newPhone) {
+    final otpController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Text('Verify Phone Number', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter the 6-digit OTP sent to $newPhone', style: TextStyle(fontSize: 13.sp)),
+            SizedBox(height: 20.h),
+            TextField(
+              controller: otpController,
+              keyboardType: TextInputType.number,
+              maxLength: 6,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 20.sp, letterSpacing: 8, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                counterText: '',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final otp = otpController.text.trim();
+              if (otp.length == 6) {
+                try {
+                  PhoneAuthCredential credential = PhoneAuthProvider.credential(
+                    verificationId: _verificationId,
+                    smsCode: otp,
+                  );
+                  await _user?.updatePhoneNumber(credential);
+                  await FirebaseService().updateUser(_user?.uid ?? '', {'phone': newPhone});
+                  Navigator.pop(context); // Close dialog
+                  _showSnack('Phone number updated successfully!');
+                  Navigator.pop(this.context); // Close profile screen
+                } catch (e) {
+                  _showSnack('Invalid OTP!', isError: true);
+                }
+              }
+            },
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSnack(String msg, {bool isError = false}) {
@@ -123,36 +291,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           children: [
             // Modern Profile Photo Frame
-            Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.1), width: 4),
-                    ),
-                    child: CircleAvatar(
-                      radius: 50.r,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.05),
-                      child: Icon(Icons.person_rounded, size: 54.sp, color: AppColors.primary),
-                    ),
-                  ),
-                  Positioned(
-                    right: 2.w,
-                    bottom: 2.h,
-                    child: Container(
-                      width: 32.w,
-                      height: 32.w,
+            GestureDetector(
+              onTap: _pickImage,
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.white, width: 2),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 4),
                       ),
-                      child: Icon(Icons.camera_alt_rounded, size: 15.sp, color: AppColors.white),
+                      child: CircleAvatar(
+                        radius: 50.r,
+                        backgroundColor: AppColors.primary.withOpacity(0.05),
+                        backgroundImage: _imageFile != null
+                            ? FileImage(_imageFile!)
+                            : (_profilePicUrl != null && _profilePicUrl!.isNotEmpty
+                            ? NetworkImage(_profilePicUrl!)
+                            : null) as ImageProvider?,
+                        child: (_imageFile == null && (_profilePicUrl == null || _profilePicUrl!.isEmpty))
+                            ? Icon(Icons.person_rounded, size: 54.sp, color: AppColors.primary)
+                            : null,
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      right: 2.w,
+                      bottom: 2.h,
+                      child: Container(
+                        width: 32.w,
+                        height: 32.w,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.white, width: 2),
+                        ),
+                        child: Icon(Icons.camera_alt_rounded, size: 15.sp, color: AppColors.white),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             SizedBox(height: 10.h),
@@ -198,7 +376,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               hint: 'Tell others about yourself...',
               maxLines: 3,
             ),
+            SizedBox(height: 24.h),
+
+            // Ride Preferences Card
+            _buildPreferencesCard(),
+
             SizedBox(height: 32.h),
+
 
             // Primary Form Save Button
             SizedBox(
@@ -232,6 +416,72 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(height: 80.h), // Safe spacing padding from UI overlaps
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPreferencesCard() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.tune_rounded, color: AppColors.primary, size: 18.sp),
+              SizedBox(width: 8.w),
+              Text(
+                'Ride Preferences',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          _prefToggle('🎵 Music Allowed', _musicAllowed, (v) => setState(() => _musicAllowed = v)),
+          _prefToggle('🐾 Pets Allowed', _petsAllowed, (v) => setState(() => _petsAllowed = v)),
+          _prefToggle('🚬 Smoking Allowed', _smokingAllowed, (v) => setState(() => _smokingAllowed = v)),
+          _prefToggle('❄️ AC Preferred', _acPreferred, (v) => setState(() => _acPreferred = v)),
+        ],
+      ),
+    );
+  }
+
+  Widget _prefToggle(String label, bool value, Function(bool) onChanged) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppColors.primary,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
       ),
     );
   }

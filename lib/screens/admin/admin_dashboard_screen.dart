@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../core/constants/app_colors.dart';
 import 'admin_users_screen.dart';
 import 'admin_rides_screen.dart';
 import 'admin_notifications_screen.dart';
+import 'admin_reports_screen.dart';
+import 'admin_moderation_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -106,7 +109,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
               // Stats Grid
               _buildStatsGrid(),
-              SizedBox(height: 16.h),
+              SizedBox(height: 24.h),
+
+              // Charts
+              _buildRevenueChart(),
+              SizedBox(height: 24.h),
+
+              _buildRideTypeDistribution(),
+              SizedBox(height: 24.h),
 
               // Quick Actions
               _buildQuickActions(),
@@ -308,6 +318,214 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Widget _buildRevenueChart() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Revenue Trend (Last 7 Days)',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          height: 220.h,
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: LineChart(
+            LineChartData(
+              gridData: const FlGridData(show: false),
+              titlesData: FlTitlesData(
+                show: true,
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 22,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                      if (value.toInt() >= 0 && value.toInt() < days.length) {
+                        return Text(
+                          days[value.toInt()],
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.sp,
+                          ),
+                        );
+                      }
+                      return const Text('');
+                    },
+                  ),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: const [
+                    FlSpot(0, 300),
+                    FlSpot(1, 450),
+                    FlSpot(2, 200),
+                    FlSpot(3, 600),
+                    FlSpot(4, 800),
+                    FlSpot(5, 750),
+                    FlSpot(6, 900),
+                  ],
+                  isCurved: true,
+                  color: AppColors.primary,
+                  barWidth: 4,
+                  isStrokeCapRound: true,
+                  dotData: const FlDotData(show: false),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRideTypeDistribution() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ride Status Distribution',
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Container(
+          height: 200.h,
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 0,
+              centerSpaceRadius: 40,
+              sections: [
+                PieChartSectionData(
+                  color: AppColors.success,
+                  value: 40,
+                  title: '40%',
+                  radius: 50,
+                  titleStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+                PieChartSectionData(
+                  color: AppColors.primary,
+                  value: 30,
+                  title: '30%',
+                  radius: 50,
+                  titleStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+                PieChartSectionData(
+                  color: Colors.amber,
+                  value: 20,
+                  title: '20%',
+                  radius: 50,
+                  titleStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+                PieChartSectionData(
+                  color: AppColors.error,
+                  value: 10,
+                  title: '10%',
+                  radius: 50,
+                  titleStyle: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 12.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildLegendItem('Completed', AppColors.success),
+            SizedBox(width: 16.w),
+            _buildLegendItem('Active', AppColors.primary),
+            SizedBox(width: 16.w),
+            _buildLegendItem('Full', Colors.amber),
+            SizedBox(width: 16.w),
+            _buildLegendItem('Cancelled', AppColors.error),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 12.w,
+          height: 12.w,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        SizedBox(width: 4.w),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.sp,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildQuickActions() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,14 +564,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
             SizedBox(width: 12.w),
             _buildActionButton(
-              '🔔 Notify',
-              AppColors.primary,
-              Icons.notifications_rounded,
+              '⚠️ Reports',
+              AppColors.error,
+              Icons.report_gmailerrorred_rounded,
                   () => Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (_) =>
-                    const AdminNotificationsScreen()),
+                    const AdminReportsScreen()),
+              ),
+            ),
+            SizedBox(width: 12.w),
+            _buildActionButton(
+              '🛡️ Mod',
+              Colors.blueGrey,
+              Icons.gavel_rounded,
+                  () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                    const AdminModerationScreen()),
               ),
             ),
           ],
@@ -417,6 +647,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               {'icon': Icons.directions_car_rounded, 'color': 0xFF00A86B, 'text': 'New ride offered: Noida → Delhi', 'time': '5 min ago'},
               {'icon': Icons.payments_rounded, 'color': 0xFF00C853, 'text': 'Payment received ₹120', 'time': '10 min ago'},
               {'icon': Icons.star_rounded, 'color': 0xFFFFC107, 'text': 'New 5 star review received', 'time': '15 min ago'},
+              {'icon': Icons.report_problem_rounded, 'color': 0xFFD32F2F, 'text': 'New issue reported', 'time': '20 min ago'},
               {'icon': Icons.sos_rounded, 'color': 0xFFD32F2F, 'text': 'SOS alert triggered!', 'time': '1 hour ago'},
             ];
 
