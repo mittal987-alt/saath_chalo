@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/firebase_services.dart';
+import '../../models/booking_model.dart';
 
 import '../../core/constants/secrets.dart';
 
@@ -46,7 +47,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String get from => widget.booking?.from ?? widget.from;
   String get to => widget.booking?.to ?? widget.to;
   double get amount => widget.booking?.totalPrice ?? widget.amount;
-  int get seats => widget.booking?.seats ?? widget.seats;
+  int get seats => widget.booking?.seatsBooked ?? widget.seats;
   double get pricePerSeat => widget.booking?.pricePerSeat ?? widget.pricePerSeat;
 
   double get totalAmount => amount;
@@ -232,9 +233,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 SizedBox(height: 16.h),
                 Text('Booking Confirmed!', style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
                 SizedBox(height: 8.h),
-                Text('You have chosen to pay by Cash.', textAlign: TextAlign.center),
+                const Text('You have chosen to pay by Cash.', textAlign: TextAlign.center),
                 SizedBox(height: 12.h),
-                Text('Total to pay: ₹${finalTotal.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                Text('Total to pay: ₹${finalTotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
                 SizedBox(height: 24.h),
                 ElevatedButton(
                   onPressed: () {
@@ -249,8 +250,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
       }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -460,7 +463,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
 
           SizedBox(height: 16.h),
-          Divider(color: AppColors.divider),
+          const Divider(color: AppColors.divider),
           SizedBox(height: 16.h),
 
           // Route
@@ -532,7 +535,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           _buildPriceRow('Platform Fee (5%)',
               '₹${platformFee.toStringAsFixed(0)}'),
           SizedBox(height: 8.h),
-          Divider(color: AppColors.divider),
+          const Divider(color: AppColors.divider),
           SizedBox(height: 8.h),
           _buildPriceRow(
             'Total',

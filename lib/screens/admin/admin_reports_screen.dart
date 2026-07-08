@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/report_model.dart';
+import '../../services/firebase_services.dart';
 
 class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
@@ -14,6 +15,7 @@ class AdminReportsScreen extends StatefulWidget {
 
 class _AdminReportsScreenState extends State<AdminReportsScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseService _firebaseService = FirebaseService();
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +132,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                 ],
               ),
               PopupMenuButton<String>(
-                onSelected: (val) => _updateReportStatus(report.reportId, val),
+                onSelected: (val) => _updateReportStatus(report, val),
                 itemBuilder: (context) => [
                   const PopupMenuItem(value: 'pending', child: Text('Set Pending')),
                   const PopupMenuItem(value: 'investigating', child: Text('Set Investigating')),
@@ -167,12 +169,30 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     }
   }
 
-  Future<void> _updateReportStatus(String reportId, String status) async {
-    await _db.collection('reports').doc(reportId).update({'status': status});
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Report status updated to $status')),
+  Future<void> _updateReportStatus(ReportModel report, String status) async {
+    try {
+      await _firebaseService.updateReportStatus(
+        reportId: report.reportId,
+        status: status,
+        reporterId: report.reporterId,
       );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Report status updated to $status'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating report: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 }

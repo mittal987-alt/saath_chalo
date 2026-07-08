@@ -147,7 +147,7 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _handleModeration(review.reviewId, 'rejected'),
+                  onPressed: () => _handleModeration(review, 'rejected'),
                   icon: const Icon(Icons.delete_outline, color: AppColors.error),
                   label: const Text('Reject', style: TextStyle(color: AppColors.error)),
                   style: OutlinedButton.styleFrom(
@@ -158,7 +158,7 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _handleModeration(review.reviewId, 'approved'),
+                  onPressed: () => _handleModeration(review, 'approved'),
                   icon: const Icon(Icons.check),
                   label: const Text('Approve'),
                   style: ElevatedButton.styleFrom(
@@ -173,9 +173,13 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
     );
   }
 
-  Future<void> _handleModeration(String reviewId, String status) async {
+  Future<void> _handleModeration(ReviewModel review, String status) async {
     try {
-      await _firebaseService.updateReviewStatus(reviewId, status);
+      await _firebaseService.updateReviewStatus(
+        review.reviewId,
+        status,
+        reviewerId: review.reviewerId,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
