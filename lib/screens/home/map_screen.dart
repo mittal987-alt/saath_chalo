@@ -125,7 +125,7 @@ class _MapScreenState extends State<MapScreen> {
           // Loading Indicator
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               child: const Center(
                 child: CircularProgressIndicator(
                   color: AppColors.primary,
@@ -148,85 +148,94 @@ class _MapScreenState extends State<MapScreen> {
                 child: Container(
                   padding: EdgeInsets.all(20.w),
                   decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.85),
+                    color: AppColors.white.withValues(alpha: 0.85),
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(30.r),
                       topRight: Radius.circular(30.r),
                     ),
                     border: Border(
-                      top: BorderSide(color: AppColors.white.withOpacity(0.5), width: 1.5),
+                      top: BorderSide(
+                          color: AppColors.white.withValues(alpha: 0.5),
+                          width: 1.5),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, -5),
                       ),
                     ],
                   ),
                   child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Handle bar
-                  Center(
-                    child: Container(
-                      width: 40.w,
-                      height: 4.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(2.r),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-
-                  Text(
-                    'Your Location 📍',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    _currentPosition != null
-                        ? 'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}'
-                        : 'Getting your location...',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  // Nearby Rides Row
-                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildNearbyCard('3', 'Rides\nNearby',
-                          Icons.directions_car_rounded, AppColors.primary),
-                      SizedBox(width: 12.w),
-                      _buildNearbyCard('2', 'Riders\nWaiting',
-                          Icons.people_rounded, AppColors.secondary),
-                      SizedBox(width: 12.w),
-                      _buildNearbyCard('5 min', 'Nearest\nRide',
-                          Icons.timer_rounded, AppColors.success),
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 40.w,
+                          height: 4.h,
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(2.r),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+
+                      Text(
+                        'Your Location 📍',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        _currentPosition != null
+                            ? 'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}'
+                            : 'Getting your location...',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+
+                      SizedBox(height: 16.h),
+
+                      // Nearby Rides Row
+                      Row(
+                        children: [
+                          _buildNearbyCard('3', 'Rides\nNearby',
+                              Icons.directions_car_rounded, AppColors.primary),
+                          SizedBox(width: 12.w),
+                          _buildNearbyCard('2', 'Riders\nWaiting',
+                              Icons.people_rounded, AppColors.secondary),
+                          SizedBox(width: 12.w),
+                          _buildNearbyCard('5 min', 'Nearest\nRide',
+                              Icons.timer_rounded, AppColors.success),
+                        ],
+                      ),
+
+                      SizedBox(height: 16.h),
+
+                      // Find Ride Button
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.search_rounded),
+                        label: const Text('Find Rides Near Me'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: Size(double.infinity, 48.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-
-                  SizedBox(height: 16.h),
-
-                  // Find Ride Button
-                  ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.search_rounded),
-                    label: const Text('Find Rides Near Me'),
-                  ),
-                ],
+                ),
               ),
-            ),
             ),
           ),
 

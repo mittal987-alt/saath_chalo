@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
@@ -149,16 +148,6 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> with SingleTicker
         );
       },
     );
-  }
-
-  int _compareTimestamps(dynamic aData, dynamic bData) {
-    DateTime parse(dynamic val) {
-      if (val == null) return DateTime(2000);
-      if (val is Timestamp) return val.toDate();
-      if (val is String) return DateTime.tryParse(val) ?? DateTime(2000);
-      return DateTime(2000);
-    }
-    return parse(aData['createdAt']).compareTo(parse(bData['createdAt']));
   }
 
   Widget _buildEmptyState(String title, String subtitle) {
@@ -336,6 +325,7 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> with SingleTicker
           ),
           TextButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
               try {
                 await FirebaseService().cancelBooking(
@@ -344,17 +334,13 @@ class _RideHistoryScreenState extends State<RideHistoryScreen> with SingleTicker
                   seatsToReturn: booking.seatsBooked,
                   wasAccepted: booking.status != 'pending',
                 );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Booking cancelled successfully')),
-                  );
-                }
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Booking cancelled successfully')),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
-                  );
-                }
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+                );
               }
             },
             child: const Text('Yes, cancel', style: TextStyle(color: AppColors.error)),

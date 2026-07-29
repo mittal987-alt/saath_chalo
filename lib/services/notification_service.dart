@@ -8,7 +8,7 @@ import '../core/constants/app_colors.dart';
 // Handle background messages
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print('Background message: ${message.notification?.title}');
+  debugPrint('Background message: ${message.notification?.title}');
 }
 
 class NotificationService {
@@ -47,13 +47,13 @@ class NotificationService {
       provisional: false,
     );
 
-    print('Permission status: ${settings.authorizationStatus}');
+    debugPrint('Permission status: ${settings.authorizationStatus}');
   }
 
   // Get & Save FCM Token
   Future<void> _getToken() async {
     String? token = await _messaging.getToken();
-    print('FCM Token: $token');
+    debugPrint('FCM Token: $token');
 
     if (token != null && _auth.currentUser != null) {
       await updateToken(token);
@@ -87,7 +87,7 @@ class NotificationService {
   // Listen to foreground messages
   void _listenToForegroundMessages() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Foreground message: ${message.notification?.title}');
+      debugPrint('Foreground message: ${message.notification?.title}');
       // Show in-app notification
       _showInAppNotification(message);
     });
@@ -97,14 +97,14 @@ class NotificationService {
   Future<void> _handleInitialMessage() async {
     RemoteMessage? message = await _messaging.getInitialMessage();
     if (message != null) {
-      print('Initial message: ${message.notification?.title}');
+      debugPrint('Initial message: ${message.notification?.title}');
     }
   }
 
   // Handle message opened app (background)
   void _handleMessageOpenedApp() {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Message opened app: ${message.notification?.title}');
+      debugPrint('Message opened app: ${message.notification?.title}');
     });
   }
 

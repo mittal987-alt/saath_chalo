@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/splash/splash_screen.dart';
 import 'services/notification_service.dart';
@@ -22,6 +22,8 @@ void main() async {
 }
 
 class SaathChaloApp extends StatelessWidget {
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
   const SaathChaloApp({super.key});
 
   @override
@@ -33,6 +35,7 @@ class SaathChaloApp extends StatelessWidget {
           minTextAdapt: true,
           builder: (context, child) {
             return MaterialApp(
+              scaffoldMessengerKey: scaffoldMessengerKey,
               title: 'SaathChalo',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,

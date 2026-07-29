@@ -9,7 +9,7 @@ import '../../models/booking_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
-import 'package:lottie/lottie.dart';
+import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../ride/find_ride_screen.dart';
@@ -24,7 +24,7 @@ import '../ai/ai_assistant_screen.dart';
 import '../ride/driver_requests_screen.dart';
 import '../ride/my_bookings_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/language_switcher.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -1063,10 +1063,10 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.border.withOpacity(0.5), width: 1),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5), width: 1),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -1079,10 +1079,10 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 48.w,
             decoration: BoxDecoration(
               color: ride.status == 'active'
-                  ? AppColors.primary.withOpacity(0.1)
+                  ? AppColors.primary.withValues(alpha: 0.1)
                   : isCompleted
-                  ? AppColors.success.withOpacity(0.1)
-                  : AppColors.error.withOpacity(0.1),
+                  ? AppColors.success.withValues(alpha: 0.1)
+                  : AppColors.error.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16.r),
             ),
             child: Icon(
@@ -1149,6 +1149,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     ),
+    ),
     );
   }
 
@@ -1206,10 +1207,10 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: AppColors.border.withOpacity(0.5), width: 1),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5), width: 1),
           boxShadow: [
             BoxShadow(
-              color: AppColors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -1220,7 +1221,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 24.sp),
@@ -1261,12 +1262,12 @@ class _HomeScreenState extends State<HomeScreen> {
         margin: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h),
         height: 68.h,
         decoration: BoxDecoration(
-          color: AppColors.white.withOpacity(0.85),
+          color: AppColors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(30.r),
           border: Border.all(color: AppColors.white, width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.15),
+              color: AppColors.primary.withValues(alpha: 0.15),
               blurRadius: 30,
               spreadRadius: 5,
               offset: const Offset(0, 10),
@@ -1342,7 +1343,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isSelected = _selectedIndex == index;
     final color = isSelected
         ? AppColors.primary
-        : AppColors.textHint.withOpacity(0.6);
+        : AppColors.textHint.withValues(alpha: 0.6);
 
     return InkWell(
       onTap: () {
@@ -1361,7 +1362,7 @@ class _HomeScreenState extends State<HomeScreen> {
               duration: const Duration(milliseconds: 200),
               padding: isSelected ? EdgeInsets.all(6.w) : EdgeInsets.zero,
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+                color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
                 shape: BoxShape.circle,
               ),
               child: Icon(
