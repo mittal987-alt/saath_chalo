@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
+import '../../services/notification_service.dart';
 import '../home/home_screen.dart';
 import 'signup_screen.dart';
 
@@ -30,6 +31,10 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      
+      // Update FCM token after login
+      await NotificationService().updateToken(null);
+
       _goToHome();
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);

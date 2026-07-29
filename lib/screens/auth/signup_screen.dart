@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import '../../models/user_model.dart';
 import '../../services/firebase_services.dart';
+import '../../services/notification_service.dart';
 import '../home/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -51,6 +52,9 @@ class _SignupScreenState extends State<SignupScreen> {
         createdAt: DateTime.now(),
       );
       await FirebaseService().saveUser(user);
+
+      // Update FCM token after signup
+      await NotificationService().updateToken(null);
 
       // Go to Home
       if (mounted) {

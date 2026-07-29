@@ -16,6 +16,8 @@ import '../driver/earnings_dashboard_screen.dart';
 import 'safety_settings_screen.dart';
 import 'sos_settings_screen.dart';
 import '../payment/payment_history_screen.dart';
+import 'package:provider/provider.dart';
+import '../../providers/language_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -306,7 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuItem(Icons.notifications_rounded, 'Notifications', AppColors.primary, () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
           }),
-          _buildMenuItem(Icons.language_rounded, 'Language', AppColors.primary, () => _showLanguageDialog()),
+          _buildMenuItem(Icons.language_rounded, 'Language / भाषा', AppColors.primary, () => _showLanguageDialog()),
           _buildMenuItem(Icons.help_rounded, 'Help & Support', AppColors.primary, () => _showSupportDialog()),
           _buildMenuItem(Icons.info_rounded, 'About SaathChalo', AppColors.primary, () => _showAboutAppDialog()),
 
@@ -412,19 +414,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showLanguageDialog() {
+    final langProvider = context.read<LanguageProvider>();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-        title: const Text('Select Language'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: const Text('Select Language / भाषा चुनें'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(title: const Text('English'), leading: const Text('🇬🇧'), onTap: () => Navigator.pop(context)),
-            ListTile(title: const Text('हिंदी'), leading: const Text('🇮🇳'), onTap: () => Navigator.pop(context)),
+            _langOption(langProvider, 'English', '🇬🇧', 'en'),
+            const Divider(),
+            _langOption(langProvider, 'हिंदी', '🇮🇳', 'hi'),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _langOption(LanguageProvider provider, String label, String flag, String code) {
+    final isSelected = provider.locale.languageCode == code;
+    return ListTile(
+      leading: Text(flag, style: TextStyle(fontSize: 24.sp)),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+        ),
+      ),
+      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.primary) : null,
+      onTap: () async {
+        if (code == 'hi') {
+          await provider.setHindi();
+        } else {
+          await provider.setEnglish();
+        }
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(code == 'hi' ? 'भाषा हिंदी में बदल गई!' : 'Language changed to English!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -434,12 +469,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
         title: const Text('Help & Support'),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(leading: Icon(Icons.email_rounded, color: AppColors.primary), title: const Text('Email Us'), subtitle: const Text('support@saathchalo.com')),
-            ListTile(leading: Icon(Icons.phone_rounded, color: AppColors.primary), title: const Text('Call Us'), subtitle: const Text('+91 98765 43210')),
-            ListTile(leading: Icon(Icons.chat_rounded, color: AppColors.primary), title: const Text('WhatsApp'), subtitle: const Text('+91 98765 43210')),
+            ListTile(leading: Icon(Icons.email_rounded, color: AppColors.primary), title: Text('Email Us'), subtitle: Text('support@saathchalo.com')),
+            ListTile(leading: Icon(Icons.phone_rounded, color: AppColors.primary), title: Text('Call Us'), subtitle: Text('+91 98765 43210')),
+            ListTile(leading: Icon(Icons.chat_rounded, color: AppColors.primary), title: Text('WhatsApp'), subtitle: Text('+91 98765 43210')),
           ],
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],

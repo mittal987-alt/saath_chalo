@@ -2,6 +2,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../main.dart';
+import '../core/constants/app_colors.dart';
 
 // Handle background messages
 @pragma('vm:entry-point')
@@ -54,26 +56,32 @@ class NotificationService {
     print('FCM Token: $token');
 
     if (token != null && _auth.currentUser != null) {
+      await updateToken(token);
+    }
+
+    // Listen for token refresh
+    _messaging.onTokenRefresh.listen((newToken) async {
+      if (_auth.currentUser != null) {
+        await updateToken(newToken);
+      }
+    });
+  }
+
+  // Update FCM Token in Firestore
+  Future<void> updateToken(String? token) async {
+    token ??= await _messaging.getToken();
+    if (token != null && _auth.currentUser != null) {
       await _db
           .collection('users')
           .doc(_auth.currentUser!.uid)
           .set(
         {
           'fcmToken': token,
+          'lastTokenUpdate': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
       );
     }
-
-    // Listen for token refresh
-    _messaging.onTokenRefresh.listen((newToken) async {
-      if (_auth.currentUser != null) {
-        await _db
-            .collection('users')
-            .doc(_auth.currentUser!.uid)
-            .update({'fcmToken': newToken});
-      }
-    });
   }
 
   // Listen to foreground messages
@@ -102,8 +110,33 @@ class NotificationService {
 
   // Show in-app notification banner
   void _showInAppNotification(RemoteMessage message) {
-    // We will show this via GlobalKey
-    print('Show notification: ${message.notification?.title}');
+    final notification = message.notification;
+    if (notification == null) return;
+
+    SaathChaloApp.scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              notification.title ?? 'New Notification',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(notification.body ?? ''),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.primary,
+        action: SnackBarAction(
+          label: 'View',
+          textColor: Colors.white,
+          onPressed: () {
+            // Logic to navigate based on message type
+          },
+        ),
+      ),
+    );
   }
 
   // Subscribe to topic

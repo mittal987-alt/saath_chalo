@@ -89,6 +89,17 @@ class _RatingScreenState extends State<RatingScreen> {
           .doc(reviewId)
           .set(review.toMap());
 
+      // Notify admin if flagged
+      if (review.status == 'flagged') {
+        await FirebaseService().sendNotification(
+          toUid: 'admin_panel',
+          title: 'Review Flagged for Moderation 🛡️',
+          body: 'A review by ${review.reviewerName} was flagged: ${review.moderationNote}',
+          type: 'admin_moderation',
+          data: {'reviewId': reviewId},
+        );
+      }
+
       // Update driver's average rating
       await _updateDriverRating();
 

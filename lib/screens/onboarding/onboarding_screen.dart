@@ -32,7 +32,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'icon': Icons.shield_rounded,
       'title': AppStrings.onboard3Title,
       'desc': AppStrings.onboard3Desc,
-      'color': Color(0xFF1565C0),
+      'color': AppColors.info,
     },
   ];
 
@@ -63,20 +63,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
             // Skip Button
             Align(
               alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: _goToLogin,
-                child: Text(
-                  AppStrings.skip,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 14.sp,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                child: TextButton(
+                  onPressed: _goToLogin,
+                  child: Text(
+                    AppStrings.skip,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -86,6 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
+                physics: const BouncingScrollPhysics(),
                 onPageChanged: (index) {
                   setState(() => _currentPage = index);
                 },
@@ -96,42 +101,74 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            // Dots Indicator
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _pages.length,
-                    (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: EdgeInsets.symmetric(horizontal: 4.w),
-                  width: _currentPage == index ? 24.w : 8.w,
-                  height: 8.h,
-                  decoration: BoxDecoration(
-                    color: _currentPage == index
-                        ? AppColors.primary
-                        : AppColors.border,
-                    borderRadius: BorderRadius.circular(4.r),
+            // Bottom Section (Dots + Button)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30.r),
+                  topRight: Radius.circular(30.r),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
                   ),
-                ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Dots Indicator
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _pages.length,
+                      (index) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: EdgeInsets.symmetric(horizontal: 4.w),
+                        width: _currentPage == index ? 24.w : 8.w,
+                        height: 8.h,
+                        decoration: BoxDecoration(
+                          color: _currentPage == index
+                              ? AppColors.primary
+                              : AppColors.primary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                      ),
+                    ),
+                  ),
+      
+                  SizedBox(height: 32.h),
+      
+                  // Next / Get Started Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _nextPage,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.r),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        _currentPage == _pages.length - 1
+                            ? AppStrings.getStarted
+                            : AppStrings.next,
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            SizedBox(height: 32.h),
-
-            // Next / Get Started Button
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: ElevatedButton(
-                onPressed: _nextPage,
-                child: Text(
-                  _currentPage == _pages.length - 1
-                      ? AppStrings.getStarted
-                      : AppStrings.next,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 24.h),
           ],
         ),
       ),
@@ -144,31 +181,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon Circle
+          // Icon Circle with soft shadow
           Container(
             width: 200.w,
             height: 200.w,
             decoration: BoxDecoration(
-              color: (page['color'] as Color).withValues(alpha: 0.1),
+              color: AppColors.white,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: (page['color'] as Color).withOpacity(0.15),
+                  blurRadius: 40,
+                  spreadRadius: 10,
+                ),
+                BoxShadow(
+                  color: AppColors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: Icon(
               page['icon'] as IconData,
-              size: 100.sp,
+              size: 90.sp,
               color: page['color'] as Color,
             ),
           ),
 
-          SizedBox(height: 48.h),
+          SizedBox(height: 56.h),
 
           // Title
           Text(
             page['title'] as String,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 26.sp,
-              fontWeight: FontWeight.bold,
+              fontSize: 28.sp,
+              fontWeight: FontWeight.w800,
               color: AppColors.textPrimary,
+              letterSpacing: -0.5,
             ),
           ),
 
@@ -179,11 +229,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             page['desc'] as String,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 15.sp,
+              fontSize: 16.sp,
               color: AppColors.textSecondary,
-              height: 1.6,
+              fontWeight: FontWeight.w400,
+              height: 1.5,
             ),
           ),
+          
+          SizedBox(height: 32.h), // Extra padding to keep content centered
         ],
       ),
     );

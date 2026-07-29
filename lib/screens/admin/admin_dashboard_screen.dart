@@ -626,40 +626,95 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Recent Activity',
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Recent Activity',
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminNotificationsScreen()),
+              ),
+              child: const Text('View All'),
+            ),
+          ],
         ),
-        SizedBox(height: 12.h),
+        SizedBox(height: 4.h),
         StreamBuilder<QuerySnapshot>(
           stream: _db
-              .collection('rides')
-              .orderBy('createdAt', descending: true)
+              .collection('notifications')
+              .where('toUid', isEqualTo: 'admin_panel')
+              .orderBy('timestamp', descending: true)
               .limit(5)
               .snapshots(),
           builder: (context, snapshot) {
-            final activities = [
-              {'icon': Icons.person_add_rounded, 'color': 0xFF1565C0, 'text': 'New user signed up', 'time': '2 min ago'},
-              {'icon': Icons.directions_car_rounded, 'color': 0xFF00A86B, 'text': 'New ride offered: Noida → Delhi', 'time': '5 min ago'},
-              {'icon': Icons.payments_rounded, 'color': 0xFF00C853, 'text': 'Payment received ₹120', 'time': '10 min ago'},
-              {'icon': Icons.star_rounded, 'color': 0xFFFFC107, 'text': 'New 5 star review received', 'time': '15 min ago'},
-              {'icon': Icons.report_problem_rounded, 'color': 0xFFD32F2F, 'text': 'New issue reported', 'time': '20 min ago'},
-              {'icon': Icons.sos_rounded, 'color': 0xFFD32F2F, 'text': 'SOS alert triggered!', 'time': '1 hour ago'},
-            ];
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Text(
+                    'No recent activity',
+                    style: TextStyle(color: AppColors.textHint, fontSize: 13.sp),
+                  ),
+                ),
+              );
+            }
 
             return Column(
-              children: activities
-                  .map((a) => _buildActivityItem(a))
-                  .toList(),
+              children: snapshot.data!.docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return _buildActivityItem({
+                  'icon': _getActivityIcon(data['type']),
+                  'color': _getActivityColor(data['type']),
+                  'text': data['title'] ?? 'New Notification',
+                  'time': _formatTimestamp(data['timestamp'] as Timestamp?),
+                });
+              }).toList(),
             );
           },
         ),
       ],
     );
+  }
+
+  IconData _getActivityIcon(String? type) {
+    switch (type) {
+      case 'sos_alert': return Icons.sos_rounded;
+      case 'admin_report': return Icons.report_problem_rounded;
+      case 'admin_moderation': return Icons.gavel_rounded;
+      case 'payment': return Icons.payments_rounded;
+      default: return Icons.notifications_rounded;
+    }
+  }
+
+  int _getActivityColor(String? type) {
+    switch (type) {
+      case 'sos_alert': return 0xFFD32F2F;
+      case 'admin_report': return 0xFFFF9800;
+      case 'admin_moderation': return 0xFF1565C0;
+      case 'payment': return 0xFF00C853;
+      default: return 0xFF607D8B;
+    }
+  }
+
+  String _formatTimestamp(Timestamp? timestamp) {
+    if (timestamp == null) return 'Now';
+    final diff = DateTime.now().difference(timestamp.toDate());
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   Widget _buildActivityItem(Map<String, dynamic> activity) {

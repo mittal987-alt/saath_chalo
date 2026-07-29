@@ -1,25 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
-import 'core/providers/locale_provider.dart';
 import 'screens/splash/splash_screen.dart';
 import 'services/notification_service.dart';
+import 'providers/language_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
-  // Initialize notifications
   await NotificationService().initialize();
-
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => LocaleProvider()),
-      ],
+    ChangeNotifierProvider(
+      create: (_) => LanguageProvider(),
       child: const SaathChaloApp(),
     ),
   );
@@ -30,15 +26,35 @@ class SaathChaloApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(375, 812),
-      minTextAdapt: true,
-      builder: (context, child) {
-        return MaterialApp(
-          title: 'SaathChalo',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          home: const SplashScreen(),
+    return Consumer<LanguageProvider>(
+      builder: (context, langProvider, child) {
+        return ScreenUtilInit(
+          designSize: const Size(375, 812),
+          minTextAdapt: true,
+          builder: (context, child) {
+            return MaterialApp(
+              title: 'SaathChalo',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: ThemeMode.system, // Automatically switch between dark and light
+
+              // ✅ Localization setup
+              locale: langProvider.locale,
+              supportedLocales: const [
+                Locale('en'),
+                Locale('hi'),
+              ],
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+
+              home: const SplashScreen(),
+            );
+          },
         );
       },
     );

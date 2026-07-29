@@ -79,100 +79,148 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.primaryDark,
-              AppColors.primary,
               AppColors.primaryLight,
+              AppColors.primary,
+              AppColors.primaryDark,
             ],
+            stops: [0.0, 0.5, 1.0],
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            // Logo Animation
-            FadeTransition(
-              opacity: _fadeAnim,
-              child: ScaleTransition(
-                scale: _scaleAnim,
-                child: Container(
-                  width: 120.w,
-                  height: 120.w,
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(30.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+            // Decorative background circles
+            Positioned(
+              top: -100.h,
+              right: -50.w,
+              child: Container(
+                width: 250.w,
+                height: 250.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -50.h,
+              left: -100.w,
+              child: Container(
+                width: 300.w,
+                height: 300.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo Animation
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: ScaleTransition(
+                    scale: _scaleAnim,
+                    child: Container(
+                      width: 120.w,
+                      height: 120.w,
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: BorderRadius.circular(35.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withOpacity(0.15),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                            offset: const Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.directions_car_rounded,
+                        size: 70.sp,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 32.h),
+
+                // App Name
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: Text(
+                    AppStrings.appName,
+                    style: TextStyle(
+                      fontSize: 42.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.white,
+                      letterSpacing: 1.5,
+                      shadows: [
+                        Shadow(
+                          color: AppColors.black.withOpacity(0.2),
+                          offset: const Offset(0, 4),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 12.h),
+
+                // Tagline
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text(
+                      AppStrings.tagline,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: AppColors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 80.h),
+
+                // Loading Indicator
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: 45.w,
+                        height: 45.w,
+                        child: CircularProgressIndicator(
+                          color: AppColors.white,
+                          strokeWidth: 3.5.w,
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+                      Text(
+                        'Loading...',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.white.withOpacity(0.8),
+                          letterSpacing: 1.0,
+                        ),
                       ),
                     ],
                   ),
-                  child: Icon(
-                    Icons.directions_car_rounded,
-                    size: 70.sp,
-                    color: AppColors.primary,
-                  ),
                 ),
-              ),
-            ),
-
-            SizedBox(height: 24.h),
-
-            // App Name
-            FadeTransition(
-              opacity: _fadeAnim,
-              child: Text(
-                AppStrings.appName,
-                style: TextStyle(
-                  fontSize: 42.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 8.h),
-
-            // Tagline
-            FadeTransition(
-              opacity: _fadeAnim,
-              child: Text(
-                AppStrings.tagline,
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: AppColors.white.withValues(alpha: 0.85),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 80.h),
-
-            // Loading Indicator
-            FadeTransition(
-              opacity: _fadeAnim,
-              child: SizedBox(
-                width: 40.w,
-                height: 40.w,
-                child: CircularProgressIndicator(
-                  color: AppColors.white,
-                  strokeWidth: 3.w,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 16.h),
-
-            FadeTransition(
-              opacity: _fadeAnim,
-              child: Text(
-                'Loading...',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: AppColors.white.withValues(alpha: 0.7),
-                ),
-              ),
+              ],
             ),
           ],
         ),

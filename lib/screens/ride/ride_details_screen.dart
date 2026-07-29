@@ -136,64 +136,70 @@ class RideDetailScreen extends StatelessWidget {
       statusText = 'Completed ✅';
     }
 
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [startColor, endColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Row(
-        children: [
-          Icon(statusIcon, color: AppColors.white, size: 24.sp),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
-                  ),
-                ),
-                Text(
-                  '${ride.from} → ${ride.to}',
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    color: AppColors.white.withOpacity(0.85),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+    return Hero(
+      tag: 'ride_card_${ride.rideId}',
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [startColor, endColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(16.r),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Row(
             children: [
-              Text(
-                '₹${ride.pricePerSeat.toStringAsFixed(0)}',
-                style: TextStyle(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
+              Icon(statusIcon, color: AppColors.white, size: 24.sp),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    Text(
+                      '${ride.from} → ${ride.to}',
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: AppColors.white.withOpacity(0.85),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                'per seat',
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  color: AppColors.white.withOpacity(0.7),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '₹${ride.pricePerSeat.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  Text(
+                    'per seat',
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: AppColors.white.withOpacity(0.7),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
