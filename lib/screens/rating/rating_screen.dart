@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lottie/lottie.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/review_model.dart';
 import '../../services/moderation_service.dart';
+import '../../services/firebase_services.dart';
 import '../profile/report_issue_screen.dart';
 
 class RatingScreen extends StatefulWidget {
@@ -27,20 +30,22 @@ class RatingScreen extends StatefulWidget {
   State<RatingScreen> createState() => _RatingScreenState();
 }
 
-class _RatingScreenState extends State<RatingScreen> {
+class _RatingScreenState extends State<RatingScreen>
+    with SingleTickerProviderStateMixin {
   double _rating = 5.0;
   final _commentController = TextEditingController();
   bool _isLoading = false;
+  bool _submitted = false;
   final User? _user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  late AnimationController _starAnimController;
 
-  // Quick review tags
   final List<String> _tags = [
     '😊 Friendly',
     '⏰ On Time',
     '🚗 Safe Driver',
     '🎵 Good Music',
-    '💬 Great Conversation',
+    '💬 Great Talk',
     '🚘 Clean Car',
     '🗺️ Good Route',
     '👍 Recommended',
@@ -48,17 +53,38 @@ class _RatingScreenState extends State<RatingScreen> {
 
   final List<String> _selectedTags = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _starAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    _starAnimController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submitReview() async {
     if (_commentController.text.isEmpty && _selectedTags.isEmpty) {
+      HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add a comment or select tags!'),
+        SnackBar(
+          content: const Text('Please add a comment or select at least one tag!'),
           backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          margin: EdgeInsets.all(16.w),
         ),
       );
       return;
     }
 
+    HapticFeedback.lightImpact();
     setState(() => _isLoading = true);
 
     try {
@@ -67,7 +93,6 @@ class _RatingScreenState extends State<RatingScreen> {
           ? '${_selectedTags.join(', ')}. ${_commentController.text}'
           : _commentController.text;
 
-      // Automated Moderation
       final moderationResult = ModerationService.moderateContent(comment);
 
       final review = ReviewModel(
@@ -83,13 +108,8 @@ class _RatingScreenState extends State<RatingScreen> {
         moderationNote: moderationResult['note'],
       );
 
-      // Save review
-      await _db
-          .collection('reviews')
-          .doc(reviewId)
-          .set(review.toMap());
+      await _db.collection('reviews').doc(reviewId).set(review.toMap());
 
-      // Notify admin if flagged
       if (review.status == 'flagged') {
         await FirebaseService().sendNotification(
           toUid: 'admin_panel',
@@ -100,80 +120,26 @@ class _RatingScreenState extends State<RatingScreen> {
         );
       }
 
-      // Update driver's average rating
       await _updateDriverRating();
 
-      // Increment driver's CO2 saved for offering the ride
       await _db.collection('users').doc(widget.driverUid).update({
-        'totalCo2Saved': FieldValue.increment(2.5), // Driver saves more as they are the primary vehicle
+        'totalCo2Saved': FieldValue.increment(2.5),
       });
 
-      setState(() => _isLoading = false);
-
-      // Show success
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20.r)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.star_rounded,
-                    color: Colors.amber, size: 80.sp),
-                SizedBox(height: 16.h),
-                Text(
-                  'Review Submitted!',
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  'Thank you for rating ${widget.driverName}!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    5,
-                        (i) => Icon(
-                      i < _rating
-                          ? Icons.star_rounded
-                          : Icons.star_outline_rounded,
-                      color: Colors.amber,
-                      size: 28.sp,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Done'),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
+      HapticFeedback.heavyImpact();
+      setState(() {
+        _isLoading = false;
+        _submitted = true;
+      });
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: AppColors.error),
+          content: Text('Error: $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+        ),
       );
     }
   }
@@ -189,8 +155,7 @@ class _RatingScreenState extends State<RatingScreen> {
       for (var doc in reviews.docs) {
         totalRating += (doc.data()['rating'] ?? 5.0).toDouble();
       }
-      double avgRating = totalRating / reviews.docs.length;
-
+      final avgRating = totalRating / reviews.docs.length;
       await _db.collection('users').doc(widget.driverUid).update({
         'rating': double.parse(avgRating.toStringAsFixed(1)),
         'totalReviews': reviews.docs.length,
@@ -213,177 +178,280 @@ class _RatingScreenState extends State<RatingScreen> {
   }
 
   @override
-  void dispose() {
-    _commentController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_submitted) return _buildSuccessScreen(isDark);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Rate Your Ride'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          children: [
-            // Driver Card
-            _buildDriverCard(),
-
-            SizedBox(height: 16.h),
-
-            // Star Rating
-            _buildStarRating(),
-
-            SizedBox(height: 16.h),
-
-            // Quick Tags
-            _buildQuickTags(),
-
-            SizedBox(height: 16.h),
-
-            // Comment Box
-            _buildCommentBox(),
-
-            SizedBox(height: 24.h),
-
-            // Submit Button
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _submitReview,
-              icon: _isLoading
-                  ? SizedBox(
-                width: 20.w,
-                height: 20.w,
-                child: const CircularProgressIndicator(
-                    color: AppColors.white, strokeWidth: 2),
-              )
-                  : const Icon(Icons.send_rounded),
-              label: Text(
-                  _isLoading ? 'Submitting...' : 'Submit Review'),
-            ),
-
-            SizedBox(height: 16.h),
-
-            // Report Issue Link
-            TextButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ReportIssueScreen(
-                    reportedId: widget.driverUid,
-                    type: 'user',
-                    metadata: {'rideId': widget.rideId},
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // ── Gradient AppBar ───────────────────────────
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 100.h,
+            elevation: 0,
+            backgroundColor: AppColors.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
+              title: Text(
+                'Rate Your Ride',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F9D58), Color(0xFF1A3C34)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
               ),
-              icon: const Icon(Icons.report_problem_outlined, color: AppColors.error),
-              label: const Text('Report an issue with this driver', style: TextStyle(color: AppColors.error)),
             ),
+          ),
 
-            SizedBox(height: 32.h),
-          ],
-        ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                children: [
+                  _buildDriverCard(isDark),
+                  SizedBox(height: 16.h),
+                  _buildStarRating(isDark),
+                  SizedBox(height: 16.h),
+                  _buildQuickTags(isDark),
+                  SizedBox(height: 16.h),
+                  _buildCommentBox(isDark),
+                  SizedBox(height: 24.h),
+
+                  // Submit button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56.h,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: _isLoading
+                              ? [AppColors.textHint, AppColors.textHint]
+                              : AppColors.primaryGradient,
+                        ),
+                        borderRadius: BorderRadius.circular(18.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(_isLoading ? 0 : 0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 7),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _submitReview,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+                        ),
+                        icon: _isLoading
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.w,
+                                child: const CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2.5),
+                              )
+                            : const Icon(Icons.send_rounded, color: Colors.white),
+                        label: Text(
+                          _isLoading ? 'Submitting...' : 'Submit Review',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 14.h),
+
+                  // Report link
+                  TextButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReportIssueScreen(
+                          reportedId: widget.driverUid,
+                          type: 'user',
+                          metadata: {'rideId': widget.rideId},
+                        ),
+                      ),
+                    ),
+                    icon: Icon(Icons.flag_rounded, color: AppColors.error, size: 16.sp),
+                    label: Text(
+                      'Report an issue with this driver',
+                      style: TextStyle(color: AppColors.error, fontSize: 13.sp),
+                    ),
+                  ),
+
+                  SizedBox(height: 40.h),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDriverCard() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            'How was your ride?',
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 16.h),
-          CircleAvatar(
-            radius: 36.r,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            child: Icon(Icons.person_rounded,
-                color: AppColors.primary, size: 42.sp),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            widget.driverName,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 4.h),
-          Text(
-            '${widget.from} → ${widget.to}',
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStarRating() {
+  Widget _buildDriverCard(bool isDark) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         children: [
           Text(
-            _getRatingLabel(),
+            'How was your ride with',
             style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.bold,
-              color: _getRatingColor(),
+              fontSize: 14.sp,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontWeight: FontWeight.w400,
             ),
           ),
           SizedBox(height: 16.h),
 
-          // Star Buttons
+          // Driver avatar
+          Container(
+            padding: EdgeInsets.all(4.w),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F9D58), Color(0xFF0B8043)],
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 40.r,
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              child: Icon(Icons.person_rounded, color: Colors.white, size: 44.sp),
+            ),
+          ),
+
+          SizedBox(height: 12.h),
+
+          Text(
+            widget.driverName,
+            style: TextStyle(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              letterSpacing: -0.5,
+            ),
+          ),
+
+          SizedBox(height: 10.h),
+
+          // Route pill
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.radio_button_checked, size: 10.sp, color: AppColors.primary),
+                SizedBox(width: 6.w),
+                Text(
+                  widget.from,
+                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.primary),
+                ),
+                Icon(Icons.arrow_forward_rounded, size: 12.sp, color: AppColors.primary),
+                Text(
+                  widget.to,
+                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600, color: AppColors.primary),
+                ),
+                SizedBox(width: 6.w),
+                Icon(Icons.location_on_rounded, size: 10.sp, color: AppColors.error),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStarRating(bool isDark) {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.0 : 0.04),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: Text(
+              _getRatingLabel(),
+              key: ValueKey(_rating),
+              style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w800,
+                color: _getRatingColor(),
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+
+          SizedBox(height: 20.h),
+
+          // Star buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(5, (index) {
+              final isSelected = index < _rating;
               return GestureDetector(
-                onTap: () => setState(() => _rating = index + 1.0),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  setState(() => _rating = index + 1.0);
+                },
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: EdgeInsets.symmetric(horizontal: 6.w),
+                  duration: const Duration(milliseconds: 150),
+                  margin: EdgeInsets.symmetric(horizontal: 5.w),
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.amber.withOpacity(0.1) : Colors.transparent,
+                    shape: BoxShape.circle,
+                  ),
                   child: Icon(
-                    index < _rating
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded,
+                    isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
                     color: Colors.amber,
-                    size: index < _rating ? 44.sp : 38.sp,
+                    size: isSelected ? 46.sp : 38.sp,
                   ),
                 ),
               );
@@ -395,14 +463,8 @@ class _RatingScreenState extends State<RatingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Poor',
-                  style: TextStyle(
-                      fontSize: 12.sp,
-                      color: AppColors.textHint)),
-              Text('Excellent',
-                  style: TextStyle(
-                      fontSize: 12.sp,
-                      color: AppColors.textHint)),
+              Text('Poor', style: TextStyle(fontSize: 11.sp, color: AppColors.textHint, fontWeight: FontWeight.w500)),
+              Text('Excellent', style: TextStyle(fontSize: 11.sp, color: AppColors.textHint, fontWeight: FontWeight.w500)),
             ],
           ),
         ],
@@ -410,38 +472,51 @@ class _RatingScreenState extends State<RatingScreen> {
     );
   }
 
-  Widget _buildQuickTags() {
+  Widget _buildQuickTags(bool isDark) {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(isDark ? 0.0 : 0.04),
+            blurRadius: 10,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'What did you like? 👍',
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Text(
+                'What did you like?',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              Text('👍', style: TextStyle(fontSize: 15.sp)),
+            ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 4.h),
+          Text(
+            'Select all that apply',
+            style: TextStyle(fontSize: 11.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+          ),
+          SizedBox(height: 14.h),
           Wrap(
             spacing: 8.w,
-            runSpacing: 8.h,
+            runSpacing: 10.h,
             children: _tags.map((tag) {
               final isSelected = _selectedTags.contains(tag);
               return GestureDetector(
                 onTap: () {
+                  HapticFeedback.selectionClick();
                   setState(() {
                     if (isSelected) {
                       _selectedTags.remove(tag);
@@ -452,29 +527,24 @@ class _RatingScreenState extends State<RatingScreen> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 12.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary
-                        : AppColors.background,
-                    borderRadius: BorderRadius.circular(20.r),
+                    color: isSelected ? AppColors.primary : (isDark ? AppColors.darkSurface : AppColors.background),
+                    borderRadius: BorderRadius.circular(24.r),
                     border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.border,
+                      color: isSelected ? AppColors.primary : (isDark ? AppColors.darkBorder : AppColors.border),
+                      width: isSelected ? 0 : 1,
                     ),
+                    boxShadow: isSelected
+                        ? [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]
+                        : [],
                   ),
                   child: Text(
                     tag,
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: isSelected
-                          ? AppColors.white
-                          : AppColors.textPrimary,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      color: isSelected ? Colors.white : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                 ),
@@ -486,59 +556,163 @@ class _RatingScreenState extends State<RatingScreen> {
     );
   }
 
-  Widget _buildCommentBox() {
+  Widget _buildCommentBox(bool isDark) {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16.r),
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(isDark ? 0.0 : 0.04),
+            blurRadius: 10,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Add a Comment ✍️',
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Text(
+                'Add a comment',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(width: 6.w),
+              Text('✍️', style: TextStyle(fontSize: 15.sp)),
+            ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 4.h),
+          Text(
+            'Optional — help others know what to expect',
+            style: TextStyle(fontSize: 11.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+          ),
+          SizedBox(height: 14.h),
           TextField(
             controller: _commentController,
             maxLines: 4,
             maxLength: 200,
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              fontSize: 14.sp,
+            ),
             decoration: InputDecoration(
-              hintText:
-              'Share your experience with other riders...',
-              hintStyle: TextStyle(
-                  color: AppColors.textHint, fontSize: 13.sp),
+              hintText: 'Share your experience with other riders...',
+              hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13.sp),
+              filled: true,
+              fillColor: isDark ? AppColors.darkSurface : AppColors.background,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide:
-                const BorderSide(color: AppColors.border),
+                borderRadius: BorderRadius.circular(16.r),
+                borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide:
-                const BorderSide(color: AppColors.border),
+                borderRadius: BorderRadius.circular(16.r),
+                borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.border),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide: const BorderSide(
-                    color: AppColors.primary, width: 2),
+                borderRadius: BorderRadius.circular(16.r),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
               ),
-              contentPadding: EdgeInsets.all(12.w),
+              contentPadding: EdgeInsets.all(14.w),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSuccessScreen(bool isDark) {
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Lottie success animation
+                SizedBox(
+                  height: 200.h,
+                  child: Lottie.network(
+                    'https://lottie.host/1de5cd86-cead-4bcc-b5d3-2d3ea7d5b851/IqTFksMPxI.json',
+                    repeat: false,
+                  ),
+                ),
+
+                SizedBox(height: 16.h),
+
+                Text(
+                  'Review Submitted! 🎉',
+                  style: TextStyle(
+                    fontSize: 26.sp,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    letterSpacing: -0.8,
+                  ),
+                ),
+
+                SizedBox(height: 10.h),
+
+                Text(
+                  'Thank you for rating ${widget.driverName}.\nYour review helps the community!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+
+                SizedBox(height: 24.h),
+
+                // Star display
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (i) => Icon(
+                    i < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: Colors.amber,
+                    size: 36.sp,
+                  )),
+                ),
+
+                SizedBox(height: 40.h),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 56.h,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: AppColors.primaryGradient),
+                      borderRadius: BorderRadius.circular(18.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.35),
+                          blurRadius: 14,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+                      ),
+                      child: Text('Done', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

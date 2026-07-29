@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lottie/lottie.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
+import '../../widgets/shimmer_loading.dart';
 
 class FindRideScreen extends StatefulWidget {
   const FindRideScreen({super.key});
@@ -22,11 +25,19 @@ class _FindRideScreenState extends State<FindRideScreen> {
 
   void _searchRides() {
     if (_fromController.text.isEmpty || _toController.text.isEmpty) {
+      HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter from & to location')),
+        SnackBar(
+          content: const Text('Please enter from & to location'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.error,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          margin: EdgeInsets.all(16.w),
+        ),
       );
       return;
     }
+    HapticFeedback.lightImpact();
     setState(() => _showResults = true);
   }
 
@@ -39,103 +50,229 @@ class _FindRideScreenState extends State<FindRideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Find a Ride'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildSearchCard(),
-            if (_showResults) _buildLiveRideResults(),
-          ],
-        ),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // ── Premium SliverAppBar ─────────────────────
+          SliverAppBar(
+            expandedHeight: 110.h,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: AppColors.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
+              title: Text(
+                'Find a Ride',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0F9D58),
+                      Color(0xFF0B8043),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                _buildSearchCard(isDark),
+                if (_showResults) _buildLiveRideResults(isDark),
+                if (!_showResults) _buildIdleState(isDark),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSearchCard() {
+  Widget _buildSearchCard(bool isDark) {
     return Container(
       margin: EdgeInsets.all(16.w),
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20.r),
+        color: isDark ? AppColors.darkCardBg : AppColors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.border,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('From',
-              style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary)),
+          // From field
+          _buildSearchFieldLabel('From', Icons.radio_button_checked, AppColors.primary, isDark),
           SizedBox(height: 8.h),
           TextFormField(
             controller: _fromController,
-            decoration: InputDecoration(
-              hintText: 'Starting location',
-              prefixIcon: Icon(Icons.circle,
-                  color: AppColors.primary, size: 14.sp),
-            ),
+            style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary, fontSize: 15.sp),
+            decoration: _searchInputDeco('e.g. Connaught Place, Delhi', isDark),
           ),
-          SizedBox(height: 8.h),
+
+          // Swap button
           Center(
-            child: GestureDetector(
-              onTap: () {
-                final temp = _fromController.text;
-                _fromController.text = _toController.text;
-                _toController.text = temp;
-              },
-              child: Container(
-                padding: EdgeInsets.all(8.w),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  final temp = _fromController.text;
+                  _fromController.text = _toController.text;
+                  _toController.text = temp;
+                },
+                child: Container(
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 1),
+                  ),
+                  child: Icon(Icons.swap_vert_rounded, color: AppColors.primary, size: 22.sp),
                 ),
-                child: Icon(Icons.swap_vert_rounded,
-                    color: AppColors.primary, size: 20.sp),
               ),
             ),
           ),
-          SizedBox(height: 8.h),
-          Text('To',
-              style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary)),
+
+          // To field
+          _buildSearchFieldLabel('To', Icons.location_on_rounded, AppColors.error, isDark),
           SizedBox(height: 8.h),
           TextFormField(
             controller: _toController,
-            decoration: InputDecoration(
-              hintText: 'Destination',
-              prefixIcon: Icon(Icons.location_on,
-                  color: AppColors.secondary, size: 20.sp),
-            ),
+            style: TextStyle(color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary, fontSize: 15.sp),
+            decoration: _searchInputDeco('e.g. Noida Sector 18', isDark),
           ),
+
           SizedBox(height: 20.h),
-          ElevatedButton.icon(
-            onPressed: _searchRides,
-            icon: const Icon(Icons.search_rounded),
-            label: const Text('Search Rides'),
+
+          // Search button
+          SizedBox(
+            width: double.infinity,
+            height: 54.h,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: AppColors.primaryGradient),
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _searchRides,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                ),
+                icon: const Icon(Icons.search_rounded, color: Colors.white),
+                label: Text('Search Rides', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLiveRideResults() {
+  Widget _buildSearchFieldLabel(String label, IconData icon, Color color, bool isDark) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 16.sp),
+        SizedBox(width: 6.w),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w700,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _searchInputDeco(String hint, bool isDark) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13.sp),
+      filled: true,
+      fillColor: isDark ? AppColors.darkSurface : AppColors.background,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.r),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.r),
+        borderSide: BorderSide(color: isDark ? AppColors.darkBorder : AppColors.border, width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14.r),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+    );
+  }
+
+  Widget _buildIdleState(bool isDark) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 180.h,
+            child: Lottie.network('https://lottie.host/a4de3b1d-e5dd-481b-9cb2-77fd1ef91db4/cepFJ2VJbA.json'),
+          ),
+          Text(
+            'Find your perfect carpool',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'Enter your pickup and drop-off locations above to search for available rides near you.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveRideResults(bool isDark) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: StreamBuilder<QuerySnapshot>(
@@ -147,10 +284,12 @@ class _FindRideScreenState extends State<FindRideScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Padding(
-              padding: EdgeInsets.symmetric(vertical: 40.h),
-              child: const Center(
-                child: CircularProgressIndicator(
-                    color: AppColors.primary),
+              padding: EdgeInsets.symmetric(vertical: 16.h),
+              child: Column(
+                children: List.generate(3, (index) => Padding(
+                  padding: EdgeInsets.only(bottom: 16.h),
+                  child: ShimmerLoading(width: double.infinity, height: 220.h, borderRadius: 20.r),
+                )),
               ),
             );
           }
@@ -158,53 +297,50 @@ class _FindRideScreenState extends State<FindRideScreen> {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 40.h),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.search_off_rounded,
-                        size: 56.sp, color: AppColors.border),
-                    SizedBox(height: 12.h),
-                    Text('No rides available right now!',
-                        style: TextStyle(
-                            fontSize: 14.sp,
-                            color: AppColors.textSecondary)),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 160.h,
+                    child: Lottie.network('https://lottie.host/804c8612-4cf0-4963-8a30-80252ad8b9ed/cWl4XFhH0R.json'),
+                  ),
+                  Text('No rides available right now!',
+                      style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
+                  SizedBox(height: 6.h),
+                  Text('Try different locations or check back later.', style: TextStyle(fontSize: 12.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
+                ],
               ),
             );
           }
 
-          final fromQuery =
-          _fromController.text.toLowerCase().trim();
+          final fromQuery = _fromController.text.toLowerCase().trim();
           final toQuery = _toController.text.toLowerCase().trim();
 
           final docs = snapshot.data!.docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            final from =
-            (data['from'] ?? '').toString().toLowerCase();
+            final from = (data['from'] ?? '').toString().toLowerCase();
             final to = (data['to'] ?? '').toString().toLowerCase();
             final seats = data['availableSeats'] ?? 0;
-            final matchFrom =
-                fromQuery.isEmpty || from.contains(fromQuery);
-            final matchTo =
-                toQuery.isEmpty || to.contains(toQuery);
-            // Don't show user their own rides
-            final notOwn =
-                data['driverUid'] != _user?.uid;
+            final matchFrom = fromQuery.isEmpty || from.contains(fromQuery);
+            final matchTo = toQuery.isEmpty || to.contains(toQuery);
+            final notOwn = data['driverUid'] != _user?.uid;
             return seats > 0 && matchFrom && matchTo && notOwn;
           }).toList();
 
           if (docs.isEmpty) {
             return Padding(
               padding: EdgeInsets.symmetric(vertical: 40.h),
-              child: Center(
-                child: Text(
-                  'No matching rides for this route!\nTry different locations.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 14.sp,
-                      color: AppColors.textSecondary),
-                ),
+              child: Column(
+                children: [
+                  Icon(Icons.route_rounded, size: 56.sp, color: AppColors.border),
+                  SizedBox(height: 12.h),
+                  Text(
+                    'No matching rides for this route!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
+                  ),
+                  SizedBox(height: 6.h),
+                  Text('Try different locations.', style: TextStyle(fontSize: 12.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
+                ],
               ),
             );
           }
@@ -212,29 +348,36 @@ class _FindRideScreenState extends State<FindRideScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${docs.length} Rides Found',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        '${docs.length} Rides Found 🎉',
+                        style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: 12.h),
               ...docs.map((doc) {
-                final data =
-                doc.data() as Map<String, dynamic>;
+                final data = doc.data() as Map<String, dynamic>;
                 return _LiveRideCard(
                   rideId: doc.id,
                   data: data,
                   currentUserUid: _user?.uid ?? '',
-                  currentUserName:
-                  _user?.displayName ?? 'Rider',
-                  currentUserPhone:
-                  _user?.phoneNumber ?? '',
+                  currentUserName: _user?.displayName ?? 'Rider',
+                  currentUserPhone: _user?.phoneNumber ?? '',
+                  isDark: isDark,
                 );
               }),
-              SizedBox(height: 20.h),
+              SizedBox(height: 100.h),
             ],
           );
         },
@@ -253,6 +396,7 @@ class _LiveRideCard extends StatefulWidget {
   final String currentUserUid;
   final String currentUserName;
   final String currentUserPhone;
+  final bool isDark;
 
   const _LiveRideCard({
     required this.rideId,
@@ -260,6 +404,7 @@ class _LiveRideCard extends StatefulWidget {
     required this.currentUserUid,
     required this.currentUserName,
     required this.currentUserPhone,
+    required this.isDark,
   });
 
   @override
@@ -315,15 +460,19 @@ class _LiveRideCardState extends State<_LiveRideCard> {
 
         return Container(
           margin: EdgeInsets.only(bottom: 16.h),
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(18.w),
           decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16.r),
+            color: widget.isDark ? AppColors.darkCardBg : AppColors.white,
+            borderRadius: BorderRadius.circular(24.r),
+            border: Border.all(
+              color: widget.isDark ? AppColors.darkBorder : AppColors.border,
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+                color: AppColors.primary.withOpacity(widget.isDark ? 0.0 : 0.05),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
               ),
             ],
           ),

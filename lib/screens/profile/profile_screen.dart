@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
@@ -44,11 +46,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    HapticFeedback.mediumImpact();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: const Text('Logout'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.logout_rounded, color: AppColors.error, size: 20.sp),
+            ),
+            SizedBox(width: 12.w),
+            const Text('Logout'),
+          ],
+        ),
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
@@ -62,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      (route) => false,
+                  (route) => false,
                 );
               }
             },
@@ -80,166 +96,266 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            _buildProfileHeader(),
-            _buildStatsRow(),
-            _buildMenuSection(),
+            _buildProfileHeader(isDark),
+            _buildStatsRow(isDark),
+            _buildMenuSection(isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(bool isDark) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 40.h, 20.w, 40.h),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF00B09B), // Bright Green
-            Color(0xFF00A86B), // Deep Emerald
+            Color(0xFF0F9D58),
+            Color(0xFF0B8043),
+            Color(0xFF1A3C34),
           ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(45.r),
-          bottomRight: Radius.circular(45.r),
+          stops: [0.0, 0.6, 1.0],
         ),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Stack(
-            children: [
-              Container(
-                padding: EdgeInsets.all(3.w),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
-                ),
-                child: CircleAvatar(
-                  radius: 55.r,
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                  backgroundImage: _userModel?.profilePic.isNotEmpty == true
-                      ? NetworkImage(_userModel!.profilePic)
-                      : null,
-                  child: _userModel?.profilePic.isNotEmpty == true
-                      ? null
-                      : Icon(Icons.person_rounded, size: 60.sp, color: Colors.white),
-                ),
+          // Decorative circles
+          Positioned(
+            top: -30,
+            right: -30,
+            child: Container(
+              width: 150.w,
+              height: 150.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.05),
               ),
-              Positioned(
-                bottom: 8.h,
-                right: 8.w,
-                child: Container(
-                  padding: EdgeInsets.all(6.w),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF7043), // Orange camera icon
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.camera_alt_rounded, size: 16.sp, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 18.h),
-          Text(
-            _userModel?.name ?? 'User',
-            style: TextStyle(
-              fontSize: 22.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
             ),
           ),
-          SizedBox(height: 12.h),
-          if (_userModel?.isVerified ?? false)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          Positioned(
+            bottom: 20,
+            left: -20,
+            child: Container(
+              width: 100.w,
+              height: 100.w,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(25.r),
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.04),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+            ),
+          ),
+
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 40.h),
+              child: Column(
                 children: [
-                  const Icon(Icons.verified_rounded, color: Colors.amber, size: 16),
-                  SizedBox(width: 8.w),
+                  // Avatar with edit badge
+                  Stack(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(3.w),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.4),
+                            width: 2.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 52.r,
+                          backgroundColor: Colors.white.withOpacity(0.15),
+                          backgroundImage: _userModel?.profilePic.isNotEmpty == true
+                              ? NetworkImage(_userModel!.profilePic)
+                              : null,
+                          child: _userModel?.profilePic.isNotEmpty == true
+                              ? null
+                              : Icon(Icons.person_rounded, size: 56.sp, color: Colors.white),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 4.h,
+                        right: 4.w,
+                        child: GestureDetector(
+                          onTap: () async {
+                            await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+                            _fetchUserData();
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(7.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.accent.withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(Icons.camera_alt_rounded, size: 14.sp, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 16.h),
+
                   Text(
-                    'Verified User',
+                    _userModel?.name ?? 'User',
                     style: TextStyle(
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.5,
                     ),
                   ),
+
+                  SizedBox(height: 4.h),
+
+                  Text(
+                    _user?.email ?? '',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      color: Colors.white.withOpacity(0.7),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+
+                  SizedBox(height: 14.h),
+
+                  if (_userModel?.isVerified ?? false)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(25.r),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(25.r),
+                            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified_rounded, color: Colors.amber, size: 16),
+                              SizedBox(width: 6.w),
+                              Text(
+                                'Verified User',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(bool isDark) {
     final totalRides = _userModel?.totalRides ?? 0;
     final rating = _userModel?.rating ?? 5.0;
     final moneySaved = _userModel?.totalMoneySaved ?? 0.0;
     final co2Reduced = _userModel?.totalCo2Saved ?? 0.0;
 
-    return Container(
-      margin: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 12.h),
-      padding: EdgeInsets.symmetric(vertical: 20.h),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+    return Transform.translate(
+      offset: const Offset(0, -24),
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 20.w),
+        padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 8.w),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkCardBg : AppColors.white,
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.border,
+            width: 1,
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatItem('$totalRides', 'Total Rides', const Color(0xFF00A86B)),
-          _buildDivider(),
-          _buildStatItem('${rating.toStringAsFixed(1)} ★', 'My Rating', Colors.amber),
-          _buildDivider(),
-          _buildStatItem('₹${moneySaved.toStringAsFixed(0)}', 'Saved', const Color(0xFF00A86B)),
-          _buildDivider(),
-          _buildStatItem('${co2Reduced.toStringAsFixed(1)}kg', 'CO₂ Saved', const Color(0xFF1565C0)),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildStatItem('$totalRides', 'Rides', Icons.directions_car_rounded, AppColors.primary, isDark),
+            _buildVerticalDivider(isDark),
+            _buildStatItem('${rating.toStringAsFixed(1)}★', 'Rating', Icons.star_rounded, Colors.amber, isDark),
+            _buildVerticalDivider(isDark),
+            _buildStatItem('₹${moneySaved.toStringAsFixed(0)}', 'Saved', Icons.savings_rounded, AppColors.success, isDark),
+            _buildVerticalDivider(isDark),
+            _buildStatItem('${co2Reduced.toStringAsFixed(1)}kg', 'CO₂', Icons.eco_rounded, AppColors.info, isDark),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStatItem(String value, String label, Color color) {
+  Widget _buildStatItem(String value, String label, IconData icon, Color color, bool isDark) {
     return Expanded(
       child: Column(
         children: [
+          Container(
+            padding: EdgeInsets.all(6.w),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 16.sp),
+          ),
+          SizedBox(height: 6.h),
           Text(
             value,
             style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.bold,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w800,
               color: color,
+              letterSpacing: -0.3,
             ),
           ),
-          SizedBox(height: 3.h),
+          SizedBox(height: 2.h),
           Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 10.sp,
-              color: AppColors.textSecondary,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -248,69 +364,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDivider() {
-    return Container(width: 1, height: 28.h, color: AppColors.border.withValues(alpha: 0.6));
+  Widget _buildVerticalDivider(bool isDark) {
+    return Container(
+      width: 1,
+      height: 40.h,
+      color: isDark ? AppColors.darkDivider : AppColors.border,
+    );
   }
 
-  Widget _buildMenuSection() {
+  Widget _buildMenuSection(bool isDark) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle('Account'),
-          _buildMenuItem(Icons.person_rounded, 'Edit Profile', AppColors.primary, () async {
+          _buildSectionTitle('Account', isDark),
+          _buildMenuItem(Icons.person_rounded, 'Edit Profile', 'Update your personal info', AppColors.primary, isDark, () async {
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
             _fetchUserData();
           }),
-          _buildMenuItem(
-            Icons.account_balance_wallet_rounded,
-            'My Earnings 💰',
-            AppColors.success,
-                () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const EarningsDashboardScreen()),
-            ),
-          ),
-          _buildMenuItem(Icons.phone_rounded, 'Phone Number', AppColors.primary, () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Phone: ${_user?.phoneNumber ?? "Not set"}')),
-            );
-          }),
-          _buildMenuItem(Icons.star_rounded, 'My Ratings', Colors.amber, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewsScreen(userId: _user?.uid ?? '', userName: _user?.displayName ?? 'User')));
-          }),
+          _buildMenuItem(Icons.account_balance_wallet_rounded, 'My Earnings', 'Track your driver earnings', AppColors.success, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EarningsDashboardScreen()))),
+          _buildMenuItem(Icons.star_rounded, 'My Ratings', 'See reviews from passengers', Colors.amber, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewsScreen(userId: _user?.uid ?? '', userName: _user?.displayName ?? 'User')))),
 
-          _buildSectionTitle('Rides'),
-          _buildMenuItem(Icons.history_rounded, 'Ride History', AppColors.secondary, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const RideHistoryScreen()));
-          }),
-          _buildMenuItem(Icons.directions_car_rounded, 'My Offered Rides', AppColors.secondary, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const RideHistoryScreen()));
-          }),
-          _buildMenuItem(Icons.payments_rounded, 'Payment History', AppColors.success, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()));
-          }),
+          _buildSectionTitle('Rides', isDark),
+          _buildMenuItem(Icons.history_rounded, 'Ride History', 'View your past trips', AppColors.secondary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RideHistoryScreen()))),
+          _buildMenuItem(Icons.payments_rounded, 'Payment History', 'Manage payments & receipts', AppColors.success, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()))),
 
-          _buildSectionTitle('Safety'),
-          _buildMenuItem(Icons.shield_rounded, 'Safety Settings', AppColors.info, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetySettingsScreen()));
-          }),
-          _buildMenuItem(Icons.contacts_rounded, 'Emergency Contacts', AppColors.error, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const EmergencyContactsScreen()));
-          }),
-          _buildMenuItem(Icons.sos_rounded, 'SOS Settings', AppColors.error, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const SosSettingsScreen()));
-          }),
+          _buildSectionTitle('Safety', isDark),
+          _buildMenuItem(Icons.shield_rounded, 'Safety Settings', 'Configure travel safety options', AppColors.info, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetySettingsScreen()))),
+          _buildMenuItem(Icons.contacts_rounded, 'Emergency Contacts', 'Manage trusted contacts', AppColors.error, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmergencyContactsScreen()))),
+          _buildMenuItem(Icons.sos_rounded, 'SOS Settings', 'Configure emergency alert', AppColors.error, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SosSettingsScreen()))),
 
-          _buildSectionTitle('App Preferences'),
-          _buildMenuItem(Icons.notifications_rounded, 'Notifications', AppColors.primary, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()));
-          }),
-          _buildMenuItem(Icons.language_rounded, 'Language / भाषा', AppColors.primary, () => _showLanguageDialog()),
-          _buildMenuItem(Icons.help_rounded, 'Help & Support', AppColors.primary, () => _showSupportDialog()),
-          _buildMenuItem(Icons.info_rounded, 'About SaathChalo', AppColors.primary, () => _showAboutAppDialog()),
+          _buildSectionTitle('Preferences', isDark),
+          _buildMenuItem(Icons.notifications_rounded, 'Notifications', 'Manage app alerts', AppColors.primary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
+          _buildMenuItem(Icons.language_rounded, 'Language / भाषा', 'English / हिंदी', AppColors.primary, isDark, () => _showLanguageDialog()),
+          _buildMenuItem(Icons.help_rounded, 'Help & Support', 'Get help, contact us', AppColors.primary, isDark, () => _showSupportDialog()),
+          _buildMenuItem(Icons.info_rounded, 'About SaathChalo', 'App info & version', AppColors.primary, isDark, () => _showAboutAppDialog()),
 
           SizedBox(height: 20.h),
 
@@ -318,67 +407,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               width: double.infinity,
               margin: EdgeInsets.only(bottom: 12.h),
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen())),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A237E),
-                  minimumSize: Size(double.infinity, 48.h),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+              height: 52.h,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A237E), Color(0xFF283593)],
                 ),
-                icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white),
-                label: const Text('Admin Dashboard 👑', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF1A237E).withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen())),
+                  borderRadius: BorderRadius.circular(16.r),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 10.w),
+                      Text('Admin Dashboard 👑', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                    ],
+                  ),
+                ),
               ),
             ),
 
+          // Logout
           Container(
             width: double.infinity,
             margin: EdgeInsets.only(bottom: 16.h),
-            child: OutlinedButton.icon(
-              onPressed: _logout,
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.error, width: 1.5),
-                minimumSize: Size(double.infinity, 48.h),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            height: 52.h,
+            decoration: BoxDecoration(
+              color: AppColors.error.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: AppColors.error.withOpacity(0.3), width: 1.5),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _logout,
+                borderRadius: BorderRadius.circular(16.r),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.logout_rounded, color: AppColors.error, size: 20.sp),
+                    SizedBox(width: 10.w),
+                    Text('Sign Out', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700, fontSize: 15.sp)),
+                  ],
+                ),
               ),
-              icon: const Icon(Icons.logout_rounded, color: AppColors.error),
-              label: const Text('Logout', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
             ),
           ),
 
-          SizedBox(height: 100.h), // Safe spacing to keep content completely clear of floating bottom bar
+          SizedBox(height: 110.h),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, bool isDark) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(4.w, 16.h, 0, 8.h),
+      padding: EdgeInsets.fromLTRB(4.w, 20.h, 0, 10.h),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: TextStyle(
-          fontSize: 13.sp,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textSecondary.withValues(alpha: 0.7),
-          letterSpacing: 0.5,
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w700,
+          color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
+          letterSpacing: 1.2,
         ),
       ),
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildMenuItem(
+    IconData icon,
+    String title,
+    String subtitle,
+    Color color,
+    bool isDark,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
       child: Container(
-        margin: EdgeInsets.only(bottom: 8.h),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(14.r),
+          color: isDark ? AppColors.darkCardBg : AppColors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.border,
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
+              color: Colors.black.withOpacity(isDark ? 0.0 : 0.02),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -387,26 +520,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           children: [
             Container(
-              width: 34.w,
-              height: 34.w,
+              width: 42.w,
+              height: 42.w,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10.r),
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14.r),
               ),
-              child: Icon(icon, color: color, size: 18.sp),
+              child: Icon(icon, color: color, size: 20.sp),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 14.w),
             Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 12.sp, color: AppColors.textHint.withValues(alpha: 0.7)),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14.sp,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
+            ),
           ],
         ),
       ),
@@ -418,7 +569,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
         title: const Text('Select Language / भाषा चुनें'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -456,6 +607,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SnackBar(
               content: Text(code == 'hi' ? 'भाषा हिंदी में बदल गई!' : 'Language changed to English!'),
               backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+              margin: EdgeInsets.all(16.w),
             ),
           );
         }
@@ -467,7 +621,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
         title: const Text('Help & Support'),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
