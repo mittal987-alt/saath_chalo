@@ -20,6 +20,7 @@ import 'sos_settings_screen.dart';
 import '../payment/payment_history_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/language_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -46,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
+    final l10n = AppLocalizations.of(context)!;
     HapticFeedback.mediumImpact();
     showDialog(
       context: context,
@@ -56,20 +58,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.logout_rounded, color: AppColors.error, size: 20.sp),
             ),
             SizedBox(width: 12.w),
-            const Text('Logout'),
+            Text(l10n.logout),
           ],
         ),
-        content: const Text('Are you sure you want to logout?'),
+        content: Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -87,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
             ),
-            child: const Text('Logout'),
+            child: Text(l10n.logout),
           ),
         ],
       ),
@@ -97,6 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -104,16 +107,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            _buildProfileHeader(isDark),
-            _buildStatsRow(isDark),
-            _buildMenuSection(isDark),
+            _buildProfileHeader(isDark, l10n),
+            _buildStatsRow(isDark, l10n),
+            _buildMenuSection(isDark, l10n),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfileHeader(bool isDark) {
+  Widget _buildProfileHeader(bool isDark, AppLocalizations l10n) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -139,7 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 150.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -151,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 100.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
               ),
             ),
           ),
@@ -170,12 +173,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.4),
+                            color: Colors.white.withValues(alpha: 0.4),
                             width: 2.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -183,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: CircleAvatar(
                           radius: 52.r,
-                          backgroundColor: Colors.white.withOpacity(0.15),
+                          backgroundColor: Colors.white.withValues(alpha: 0.15),
                           backgroundImage: _userModel?.profilePic.isNotEmpty == true
                               ? NetworkImage(_userModel!.profilePic)
                               : null,
@@ -208,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.accent.withOpacity(0.4),
+                                  color: AppColors.accent.withValues(alpha: 0.4),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -239,7 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _user?.email ?? '',
                     style: TextStyle(
                       fontSize: 13.sp,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -254,9 +257,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Container(
                           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(25.r),
-                            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -264,7 +267,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const Icon(Icons.verified_rounded, color: Colors.amber, size: 16),
                               SizedBox(width: 6.w),
                               Text(
-                                'Verified User',
+                                l10n.verified,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 13.sp,
@@ -285,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatsRow(bool isDark) {
+  Widget _buildStatsRow(bool isDark, AppLocalizations l10n) {
     final totalRides = _userModel?.totalRides ?? 0;
     final rating = _userModel?.rating ?? 5.0;
     final moneySaved = _userModel?.totalMoneySaved ?? 0.0;
@@ -305,7 +308,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.08),
+              color: AppColors.primary.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -314,13 +317,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildStatItem('$totalRides', 'Rides', Icons.directions_car_rounded, AppColors.primary, isDark),
+            _buildStatItem('$totalRides', l10n.totalRides.split(' ').last, Icons.directions_car_rounded, AppColors.primary, isDark),
             _buildVerticalDivider(isDark),
             _buildStatItem('${rating.toStringAsFixed(1)}★', 'Rating', Icons.star_rounded, Colors.amber, isDark),
             _buildVerticalDivider(isDark),
-            _buildStatItem('₹${moneySaved.toStringAsFixed(0)}', 'Saved', Icons.savings_rounded, AppColors.success, isDark),
+            _buildStatItem('₹${moneySaved.toStringAsFixed(0)}', l10n.moneySaved.split(' ').last, Icons.savings_rounded, AppColors.success, isDark),
             _buildVerticalDivider(isDark),
-            _buildStatItem('${co2Reduced.toStringAsFixed(1)}kg', 'CO₂', Icons.eco_rounded, AppColors.info, isDark),
+            _buildStatItem('${co2Reduced.toStringAsFixed(1)}kg', l10n.co2Reduced.split(' ').first, Icons.eco_rounded, AppColors.info, isDark),
           ],
         ),
       ),
@@ -334,7 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: EdgeInsets.all(6.w),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 16.sp),
@@ -372,34 +375,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuSection(bool isDark) {
+  Widget _buildMenuSection(bool isDark, AppLocalizations l10n) {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle('Account', isDark),
-          _buildMenuItem(Icons.person_rounded, 'Edit Profile', 'Update your personal info', AppColors.primary, isDark, () async {
+          _buildMenuItem(Icons.person_rounded, l10n.editProfile, 'Update your personal info', AppColors.primary, isDark, () async {
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
             _fetchUserData();
           }),
-          _buildMenuItem(Icons.account_balance_wallet_rounded, 'My Earnings', 'Track your driver earnings', AppColors.success, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EarningsDashboardScreen()))),
+          _buildMenuItem(Icons.account_balance_wallet_rounded, l10n.earnings, 'Track your driver earnings', AppColors.success, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EarningsDashboardScreen()))),
           _buildMenuItem(Icons.star_rounded, 'My Ratings', 'See reviews from passengers', Colors.amber, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewsScreen(userId: _user?.uid ?? '', userName: _user?.displayName ?? 'User')))),
 
           _buildSectionTitle('Rides', isDark),
-          _buildMenuItem(Icons.history_rounded, 'Ride History', 'View your past trips', AppColors.secondary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RideHistoryScreen()))),
+          _buildMenuItem(Icons.history_rounded, l10n.rideHistory, 'View your past trips', AppColors.secondary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RideHistoryScreen()))),
           _buildMenuItem(Icons.payments_rounded, 'Payment History', 'Manage payments & receipts', AppColors.success, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()))),
 
           _buildSectionTitle('Safety', isDark),
-          _buildMenuItem(Icons.shield_rounded, 'Safety Settings', 'Configure travel safety options', AppColors.info, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetySettingsScreen()))),
-          _buildMenuItem(Icons.contacts_rounded, 'Emergency Contacts', 'Manage trusted contacts', AppColors.error, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmergencyContactsScreen()))),
+          _buildMenuItem(Icons.shield_rounded, l10n.safetySettings, 'Configure travel safety options', AppColors.info, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetySettingsScreen()))),
+          _buildMenuItem(Icons.contacts_rounded, l10n.emergencyContacts, 'Manage trusted contacts', AppColors.error, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmergencyContactsScreen()))),
           _buildMenuItem(Icons.sos_rounded, 'SOS Settings', 'Configure emergency alert', AppColors.error, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SosSettingsScreen()))),
 
           _buildSectionTitle('Preferences', isDark),
-          _buildMenuItem(Icons.notifications_rounded, 'Notifications', 'Manage app alerts', AppColors.primary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
-          _buildMenuItem(Icons.language_rounded, 'Language / भाषा', 'English / हिंदी', AppColors.primary, isDark, () => _showLanguageDialog()),
-          _buildMenuItem(Icons.help_rounded, 'Help & Support', 'Get help, contact us', AppColors.primary, isDark, () => _showSupportDialog()),
-          _buildMenuItem(Icons.info_rounded, 'About SaathChalo', 'App info & version', AppColors.primary, isDark, () => _showAboutAppDialog()),
+          _buildMenuItem(Icons.notifications_rounded, l10n.notifications, 'Manage app alerts', AppColors.primary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
+          _buildMenuItem(Icons.language_rounded, l10n.language, 'English / हिंदी', AppColors.primary, isDark, () => _showLanguageDialog()),
+          _buildMenuItem(Icons.help_rounded, l10n.helpSupport, 'Get help, contact us', AppColors.primary, isDark, () => _showSupportDialog()),
+          _buildMenuItem(Icons.info_rounded, l10n.aboutApp, 'App info & version', AppColors.primary, isDark, () => _showAboutAppDialog()),
 
           SizedBox(height: 20.h),
 
@@ -415,7 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(16.r),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF1A237E).withOpacity(0.3),
+                    color: const Color(0xFF1A237E).withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -431,7 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 20),
                       SizedBox(width: 10.w),
-                      Text('Admin Dashboard 👑', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                      Text(l10n.adminDashboard, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp)),
                     ],
                   ),
                 ),
@@ -444,9 +447,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             margin: EdgeInsets.only(bottom: 16.h),
             height: 52.h,
             decoration: BoxDecoration(
-              color: AppColors.error.withOpacity(0.06),
+              color: AppColors.error.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: AppColors.error.withOpacity(0.3), width: 1.5),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.3), width: 1.5),
             ),
             child: Material(
               color: Colors.transparent,
@@ -458,7 +461,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Icon(Icons.logout_rounded, color: AppColors.error, size: 20.sp),
                     SizedBox(width: 10.w),
-                    Text('Sign Out', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700, fontSize: 15.sp)),
+                    Text(l10n.logout, style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700, fontSize: 15.sp)),
                   ],
                 ),
               ),
@@ -511,7 +514,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.0 : 0.02),
+              color: Colors.black.withValues(alpha: isDark ? 0.0 : 0.02),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -523,7 +526,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 42.w,
               height: 42.w,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14.r),
               ),
               child: Icon(icon, color: color, size: 20.sp),
@@ -566,11 +569,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showLanguageDialog() {
     final langProvider = context.read<LanguageProvider>();
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
-        title: const Text('Select Language / भाषा चुनें'),
+        title: Text('${l10n.language} / भाषा चुनें'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

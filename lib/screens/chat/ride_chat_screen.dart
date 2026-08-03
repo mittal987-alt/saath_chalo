@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/booking_model.dart';
 
@@ -177,12 +178,29 @@ class _RideChatScreenState extends State<RideChatScreen> {
         actions: [
           // Phone call button
           IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Calling feature coming soon!'),
-                ),
-              );
+            onPressed: () async {
+              String phone = '';
+              if (widget.isDriver) {
+                phone = widget.booking.riderPhone;
+              } else {
+                final doc = await FirebaseFirestore.instance.collection('users').doc(widget.booking.driverUid).get();
+                phone = doc.data()?['phone'] ?? '';
+              }
+              
+              if (phone.isNotEmpty) {
+                final Uri telUri = Uri(scheme: 'tel', path: phone);
+                if (await canLaunchUrl(telUri)) {
+                  await launchUrl(telUri);
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch dialer')));
+                  }
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Phone number not available')));
+                }
+              }
             },
             icon: const Icon(Icons.call_rounded),
           ),

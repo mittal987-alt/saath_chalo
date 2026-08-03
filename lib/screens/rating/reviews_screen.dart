@@ -264,10 +264,27 @@ class ReviewsScreen extends StatelessWidget {
             ],
           ),
           SizedBox(height: 12.h),
-          Text(
-            review.comment,
-            style: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary, height: 1.4),
-          ),
+          if (review.tags.isNotEmpty) ...[
+            Wrap(
+              spacing: 6.w,
+              runSpacing: 6.h,
+              children: review.tags.map((tag) => Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Text(tag, style: TextStyle(fontSize: 11.sp, color: AppColors.primary, fontWeight: FontWeight.w600)),
+              )).toList(),
+            ),
+            if (review.comment.isNotEmpty) SizedBox(height: 10.h),
+          ],
+          if (review.comment.isNotEmpty)
+            Text(
+              review.comment,
+              style: TextStyle(fontSize: 13.sp, color: AppColors.textPrimary, height: 1.4),
+            ),
         ],
       ),
     );

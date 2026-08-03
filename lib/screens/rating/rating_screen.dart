@@ -89,11 +89,12 @@ class _RatingScreenState extends State<RatingScreen>
 
     try {
       final reviewId = DateTime.now().millisecondsSinceEpoch.toString();
-      final comment = _selectedTags.isNotEmpty
-          ? '${_selectedTags.join(', ')}. ${_commentController.text}'
-          : _commentController.text;
+      final comment = _commentController.text.trim();
 
-      final moderationResult = ModerationService.moderateContent(comment);
+      final textToModerate = _selectedTags.isNotEmpty
+          ? '${_selectedTags.join(', ')}. $comment'
+          : comment;
+      final moderationResult = ModerationService.moderateContent(textToModerate);
 
       final review = ReviewModel(
         reviewId: reviewId,
@@ -103,6 +104,7 @@ class _RatingScreenState extends State<RatingScreen>
         rideId: widget.rideId,
         rating: _rating,
         comment: comment,
+        tags: List.from(_selectedTags),
         createdAt: DateTime.now(),
         status: moderationResult['status'],
         moderationNote: moderationResult['note'],
