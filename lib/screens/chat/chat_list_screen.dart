@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lottie/lottie.dart';
 import '../../core/constants/app_colors.dart';
+import '../../widgets/shimmer_loading.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
@@ -11,143 +14,268 @@ class ChatListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Messages'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        elevation: 0,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('chats')
-            .snapshots(), // This is a simplification. Ideally, user-specific chats.
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.chat_bubble_outline, size: 64.sp, color: AppColors.textHint),
-                  SizedBox(height: 16.h),
-                  const Text('No messages yet'),
-                ],
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // ── Premium SliverAppBar ────────────────────────
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 110.h,
+            elevation: 0,
+            backgroundColor: AppColors.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
+              title: Text(
+                'Messages',
+                style: TextStyle(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
               ),
-            );
-          }
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F9D58), Color(0xFF1A3C34)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -15,
+                      right: -15,
+                      child: Container(
+                        width: 100.w,
+                        height: 100.w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.07),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: -25,
+                      right: 60.w,
+                      child: Container(
+                        width: 70.w,
+                        height: 70.w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.04),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
 
-          final chatDocs = snapshot.data!.docs;
+          // ── Content ─────────────────────────────────────
+          SliverToBoxAdapter(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('chats')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Padding(
+                    padding: EdgeInsets.all(16.w),
+                    child: Column(
+                      children: List.generate(4, (i) => Padding(
+                        padding: EdgeInsets.only(bottom: 12.h),
+                        child: ShimmerLoading(width: double.infinity, height: 80.h, borderRadius: 20.r),
+                      )),
+                    ),
+                  );
+                }
 
-          return ListView.builder(
-            padding: EdgeInsets.all(16.w),
-            itemCount: chatDocs.length,
-            itemBuilder: (context, index) {
-              final chatData = chatDocs[index].data() as Map<String, dynamic>;
-              final rideId = chatDocs[index].id;
-              
-              return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('chats')
-                    .doc(rideId)
-                    .collection('messages')
-                    .orderBy('timestamp', descending: true)
-                    .limit(1)
-                    .snapshots(),
-                builder: (context, msgSnapshot) {
-                  String lastMsg = "No messages";
-                  String time = "";
-                  
-                  if (msgSnapshot.hasData && msgSnapshot.data!.docs.isNotEmpty) {
-                    final msgData = msgSnapshot.data!.docs.first.data() as Map<String, dynamic>;
-                    lastMsg = msgData['text'] ?? "";
-                    final ts = msgData['timestamp'] as Timestamp?;
-                    if (ts != null) {
-                      final date = ts.toDate();
-                      time = "${date.hour}:${date.minute}";
-                    }
-                  }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return SizedBox(
+                    height: 500.h,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(20.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.background.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 80.sp,
+                            color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        SizedBox(height: 24.h),
+                        Text(
+                          'No messages yet',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        Text(
+                          'Once you book or offer a ride,\nyour chats will appear here.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-                  return _buildChatTile(context, {
-                    'name': 'Ride Chat: ${rideId.substring(0, 5)}...', // Placeholder for ride name
-                    'lastMsg': lastMsg,
-                    'time': time,
-                    'unread': 0,
-                    'rideId': rideId,
-                  });
-                },
-              );
-            },
-          );
-        },
+                final chatDocs = snapshot.data!.docs;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
+                      child: Text(
+                        '${chatDocs.length} Conversation${chatDocs.length > 1 ? "s" : ""}',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 100.h),
+                      itemCount: chatDocs.length,
+                      itemBuilder: (context, index) {
+                        final chatData = chatDocs[index].data() as Map<String, dynamic>;
+                        final rideId = chatDocs[index].id;
+
+                        return StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('chats')
+                              .doc(rideId)
+                              .collection('messages')
+                              .orderBy('timestamp', descending: true)
+                              .limit(1)
+                              .snapshots(),
+                          builder: (context, msgSnapshot) {
+                            String lastMsg = 'No messages yet';
+                            String time = '';
+
+                            if (msgSnapshot.hasData && msgSnapshot.data!.docs.isNotEmpty) {
+                              final msgData = msgSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+                              lastMsg = msgData['text'] ?? '';
+                              final ts = msgData['timestamp'] as Timestamp?;
+                              if (ts != null) {
+                                final date = ts.toDate();
+                                final hour = date.hour.toString().padLeft(2, '0');
+                                final min = date.minute.toString().padLeft(2, '0');
+                                time = '$hour:$min';
+                              }
+                            }
+
+                            return _buildChatTile(
+                              context: context,
+                              isDark: isDark,
+                              rideId: rideId,
+                              name: 'Ride Chat: ${rideId.substring(0, 6).toUpperCase()}',
+                              lastMsg: lastMsg,
+                              time: time,
+                              isMyMessage: msgSnapshot.hasData &&
+                                  msgSnapshot.data!.docs.isNotEmpty &&
+                                  (msgSnapshot.data!.docs.first.data() as Map<String, dynamic>)['senderId'] == user?.uid,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildChatTile(
-      BuildContext context, Map<String, dynamic> chat) {
+  Widget _buildChatTile({
+    required BuildContext context,
+    required bool isDark,
+    required String rideId,
+    required String name,
+    required String lastMsg,
+    required String time,
+    required bool isMyMessage,
+  }) {
     return GestureDetector(
       onTap: () {
+        HapticFeedback.lightImpact();
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ChatScreen(
-              rideId: chat['rideId'],
-              otherUserName: chat['name'],
-            ),
+            builder: (_) => ChatScreen(rideId: rideId, otherUserName: name),
           ),
         );
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(16.r),
+          color: isDark ? AppColors.darkCardBg : AppColors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.border,
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(isDark ? 0.0 : 0.03),
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Row(
           children: [
-            // Avatar
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 26.r,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  child: Icon(Icons.person_rounded,
-                      color: AppColors.primary, size: 28.sp),
+            // ── Avatar with gradient ring ─────────────────
+            Container(
+              padding: EdgeInsets.all(2.w),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F9D58), Color(0xFF34A853)],
                 ),
-                // Online dot
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 12.w,
-                    height: 12.w,
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: AppColors.white, width: 2),
-                    ),
-                  ),
+              ),
+              child: CircleAvatar(
+                radius: 24.r,
+                backgroundColor: isDark ? AppColors.darkSurface : AppColors.background,
+                child: Icon(
+                  Icons.directions_car_rounded,
+                  color: AppColors.primary,
+                  size: 22.sp,
                 ),
-              ],
+              ),
             ),
 
             SizedBox(width: 12.w),
 
-            // Chat Info
+            // ── Chat Info ────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,65 +283,65 @@ class ChatListScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        chat['name'],
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                      Expanded(
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                          ),
                         ),
                       ),
-                      Text(
-                        chat['time'],
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: chat['unread'] > 0
-                              ? AppColors.primary
-                              : AppColors.textHint,
+                      SizedBox(width: 8.w),
+                      if (time.isNotEmpty)
+                        Text(
+                          time,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                   SizedBox(height: 4.h),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      if (isMyMessage)
+                        Padding(
+                          padding: EdgeInsets.only(right: 4.w),
+                          child: Icon(
+                            Icons.done_all_rounded,
+                            size: 14.sp,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       Expanded(
                         child: Text(
-                          chat['lastMsg'],
+                          lastMsg,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 13.sp,
-                            color: chat['unread'] > 0
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                            fontWeight: chat['unread'] > 0
-                                ? FontWeight.w500
-                                : FontWeight.normal,
+                            fontSize: 12.sp,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                            fontStyle: lastMsg == 'No messages yet' ? FontStyle.italic : FontStyle.normal,
                           ),
                         ),
                       ),
-                      if (chat['unread'] > 0)
-                        Container(
-                          padding: EdgeInsets.all(5.w),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            '${chat['unread']}',
-                            style: TextStyle(
-                              fontSize: 10.sp,
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ],
               ),
+            ),
+
+            SizedBox(width: 8.w),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 12.sp,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
             ),
           ],
         ),

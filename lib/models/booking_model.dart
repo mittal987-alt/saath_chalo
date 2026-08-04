@@ -8,6 +8,9 @@ class BookingModel {
   final String riderPhone;
   final String driverUid;
   final String driverName;
+  final String driverPhone;
+  final String vehicle;
+  final double driverRating;
   final String from;
   final String to;
   final DateTime rideDate;
@@ -18,6 +21,7 @@ class BookingModel {
   final String status; // pending, confirmed, en_route, started, ended, cancelled
   final String paymentStatus; // unpaid, paid
   final String paymentMethod; // Razorpay, Cash
+  final String otp;
   final DateTime createdAt;
 
   // Convenience getter so existing code using totalAmount still works
@@ -31,6 +35,9 @@ class BookingModel {
     required this.riderPhone,
     required this.driverUid,
     required this.driverName,
+    this.driverPhone = '',
+    this.vehicle = '',
+    this.driverRating = 5.0,
     required this.from,
     required this.to,
     required this.rideDate,
@@ -41,6 +48,7 @@ class BookingModel {
     this.status = 'pending',
     this.paymentStatus = 'unpaid',
     this.paymentMethod = 'Cash',
+    this.otp = '0000',
     required this.createdAt,
   });
 
@@ -53,6 +61,9 @@ class BookingModel {
       'riderPhone': riderPhone,
       'driverUid': driverUid,
       'driverName': driverName,
+      'driverPhone': driverPhone,
+      'vehicle': vehicle,
+      'driverRating': driverRating,
       'from': from,
       'to': to,
       'rideDate': rideDate.toIso8601String(),
@@ -63,6 +74,7 @@ class BookingModel {
       'status': status,
       'paymentStatus': paymentStatus,
       'paymentMethod': paymentMethod,
+      'otp': otp,
       'createdAt': FieldValue.serverTimestamp(), // ✅ Always server time
     };
   }
@@ -76,6 +88,9 @@ class BookingModel {
       riderPhone: map['riderPhone'] ?? '',
       driverUid: map['driverUid'] ?? '',
       driverName: map['driverName'] ?? '',
+      driverPhone: map['driverPhone'] ?? '',
+      vehicle: map['vehicle'] ?? '',
+      driverRating: (map['driverRating'] ?? 5.0).toDouble(),
       from: map['from'] ?? '',
       to: map['to'] ?? '',
       rideDate: _parseDate(map['rideDate']),       // ✅ Safe parse
@@ -86,6 +101,7 @@ class BookingModel {
       status: map['status'] ?? 'pending',
       paymentStatus: map['paymentStatus'] ?? 'unpaid',
       paymentMethod: map['paymentMethod'] ?? 'Cash',
+      otp: map['otp'] ?? '0000',
       createdAt: _parseDate(map['createdAt']),     // ✅ Safe parse
     );
   }
@@ -109,6 +125,8 @@ class BookingModel {
     String? status,
     String? paymentStatus,
     String? paymentMethod,
+    String? otp,
+    DateTime? createdAt,
   }) {
     return BookingModel(
       bookingId: bookingId,
@@ -118,6 +136,9 @@ class BookingModel {
       riderPhone: riderPhone,
       driverUid: driverUid,
       driverName: driverName,
+      driverPhone: driverPhone,
+      vehicle: vehicle,
+      driverRating: driverRating,
       from: from,
       to: to,
       rideDate: rideDate,
@@ -128,7 +149,8 @@ class BookingModel {
       status: status ?? this.status,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       paymentMethod: paymentMethod ?? this.paymentMethod,
-      createdAt: createdAt,
+      otp: otp ?? this.otp,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

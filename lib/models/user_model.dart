@@ -11,7 +11,15 @@ class UserModel {
   final int totalRides;
   final bool isVerified;
   final bool isBlocked;
+  final bool isDriverVerified;
+  final String drivingLicenseNumber;
+  final String rcNumber;
+  final String insuranceDetails;
+  final String drivingLicenseUrl;
+  final String rcUrl;
+  final String insuranceUrl;
   final String fcmToken;
+  final double walletBalance;
   final double totalMoneySaved;
   final double totalCo2Saved;
   final bool musicAllowed;
@@ -31,7 +39,15 @@ class UserModel {
     this.totalRides = 0,
     this.isVerified = false,
     this.isBlocked = false,
+    this.isDriverVerified = false,
+    this.drivingLicenseNumber = '',
+    this.rcNumber = '',
+    this.insuranceDetails = '',
+    this.drivingLicenseUrl = '',
+    this.rcUrl = '',
+    this.insuranceUrl = '',
     this.fcmToken = '',
+    this.walletBalance = 0.0,
     this.totalMoneySaved = 0.0,
     this.totalCo2Saved = 0.0,
     this.musicAllowed = true,
@@ -53,7 +69,15 @@ class UserModel {
       'totalRides': totalRides,
       'isVerified': isVerified,
       'isBlocked': isBlocked,
+      'isDriverVerified': isDriverVerified,
+      'drivingLicenseNumber': drivingLicenseNumber,
+      'rcNumber': rcNumber,
+      'insuranceDetails': insuranceDetails,
+      'drivingLicenseUrl': drivingLicenseUrl,
+      'rcUrl': rcUrl,
+      'insuranceUrl': insuranceUrl,
       'fcmToken': fcmToken,
+      'walletBalance': walletBalance,
       'totalMoneySaved': totalMoneySaved,
       'totalCo2Saved': totalCo2Saved,
       'preferences': {
@@ -79,7 +103,15 @@ class UserModel {
       totalRides: map['totalRides'] ?? 0,
       isVerified: map['isVerified'] ?? false,
       isBlocked: map['isBlocked'] ?? false,
+      isDriverVerified: map['isDriverVerified'] ?? false,
+      drivingLicenseNumber: map['drivingLicenseNumber'] ?? '',
+      rcNumber: map['rcNumber'] ?? '',
+      insuranceDetails: map['insuranceDetails'] ?? '',
+      drivingLicenseUrl: map['drivingLicenseUrl'] ?? '',
+      rcUrl: map['rcUrl'] ?? '',
+      insuranceUrl: map['insuranceUrl'] ?? '',
       fcmToken: map['fcmToken'] ?? '',
+      walletBalance: (map['walletBalance'] ?? 0.0).toDouble(),
       totalMoneySaved: (map['totalMoneySaved'] ?? 0.0).toDouble(),
       totalCo2Saved: (map['totalCo2Saved'] ?? 0.0).toDouble(),
       musicAllowed: prefs?['musicAllowed'] ?? true,
@@ -116,7 +148,15 @@ class UserModel {
     int? totalRides,
     bool? isVerified,
     bool? isBlocked,
+    bool? isDriverVerified,
+    String? drivingLicenseNumber,
+    String? rcNumber,
+    String? insuranceDetails,
+    String? drivingLicenseUrl,
+    String? rcUrl,
+    String? insuranceUrl,
     String? fcmToken,
+    double? walletBalance,
     double? totalMoneySaved,
     double? totalCo2Saved,
     bool? musicAllowed,
@@ -136,7 +176,15 @@ class UserModel {
       totalRides: totalRides ?? this.totalRides,
       isVerified: isVerified ?? this.isVerified,
       isBlocked: isBlocked ?? this.isBlocked,
+      isDriverVerified: isDriverVerified ?? this.isDriverVerified,
+      drivingLicenseNumber: drivingLicenseNumber ?? this.drivingLicenseNumber,
+      rcNumber: rcNumber ?? this.rcNumber,
+      insuranceDetails: insuranceDetails ?? this.insuranceDetails,
+      drivingLicenseUrl: drivingLicenseUrl ?? this.drivingLicenseUrl,
+      rcUrl: rcUrl ?? this.rcUrl,
+      insuranceUrl: insuranceUrl ?? this.insuranceUrl,
       fcmToken: fcmToken ?? this.fcmToken,
+      walletBalance: walletBalance ?? this.walletBalance,
       totalMoneySaved: totalMoneySaved ?? this.totalMoneySaved,
       totalCo2Saved: totalCo2Saved ?? this.totalCo2Saved,
       musicAllowed: musicAllowed ?? this.musicAllowed,

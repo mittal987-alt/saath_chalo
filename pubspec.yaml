@@ -50,6 +50,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "C:/Users/Aayush/.gemini/antigravity-ide/brain/4bf861a5-7642-4e67-91fd-8e260ebd452f/saath_chalo_icon_1785743933654.png"
+  min_sdk_android: 21
 
 flutter:
   generate: true

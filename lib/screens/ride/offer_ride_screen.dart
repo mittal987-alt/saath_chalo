@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lottie/lottie.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/ride_model.dart';
 import '../../models/booking_model.dart';
@@ -29,6 +31,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
   bool _petsAllowed = false;
   bool _smokingAllowed = false;
   bool _acPreferred = true;
+  String _paymentMethod = 'Cash';
   bool _isLoading = false;
 
   @override
@@ -57,11 +60,19 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         _toController.text.isEmpty ||
         _priceController.text.isEmpty ||
         _vehicleController.text.isEmpty) {
+      HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields!')),
+        SnackBar(
+          content: const Text('Please fill all fields!'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          margin: EdgeInsets.all(16.w),
+        ),
       );
       return;
     }
+    HapticFeedback.lightImpact();
 
     setState(() => _isLoading = true);
 
@@ -90,48 +101,67 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         petsAllowed: _petsAllowed,
         smokingAllowed: _smokingAllowed,
         acPreferred: _acPreferred,
+        paymentMethod: _paymentMethod,
         createdAt: DateTime.now(),
       );
 
       await FirebaseService().offerRide(ride);
       setState(() => _isLoading = false);
 
+      HapticFeedback.heavyImpact();
       if (mounted) {
         showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.r),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28.r)),
+            contentPadding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 20.h),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.check_circle_rounded,
-                    color: AppColors.success, size: 64.sp),
-                SizedBox(height: 16.h),
-                Text(
-                  'Ride Offered!',
-                  style: TextStyle(
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
+                  SizedBox(
+                    height: 140.h,
+                    child: Center(
+                      child: Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle_rounded,
+                          size: 70.sp,
+                          color: AppColors.success,
+                        ),
+                      ),
+                    ),
                   ),
+                Text(
+                  'Ride Published! 🎉',
+                  style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w800, letterSpacing: -0.5),
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'Your ride is now live on SaathChalo!',
+                  'Your ride is now live on SaathChalo. Passengers can start requesting seats!',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary, height: 1.5),
                 ),
                 SizedBox(height: 24.h),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Great!'),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50.h,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: AppColors.primaryGradient),
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () { Navigator.pop(context); Navigator.pop(context); },
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r))),
+                      child: Text('Awesome!', style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -181,25 +211,35 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
           ),
           child: Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            color: AppColors.success,
+            margin: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 0),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E8E3E), Color(0xFF0F9D58)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [BoxShadow(color: AppColors.success.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+            ),
             child: Row(
               children: [
-                Icon(Icons.radio_button_checked,
-                    color: AppColors.white, size: 16.sp),
-                SizedBox(width: 8.w),
+                Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                  child: Icon(Icons.radio_button_checked, color: Colors.white, size: 14.sp),
+                ),
+                SizedBox(width: 10.w),
                 Expanded(
-                  child: Text(
-                    'Active Ride: ${booking.from} → ${booking.to}  •  Tap to open',
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Active Ride In Progress', style: TextStyle(fontSize: 11.sp, color: Colors.white.withOpacity(0.8), fontWeight: FontWeight.w500)),
+                      Text('${booking.from} → ${booking.to}', style: TextStyle(fontSize: 13.sp, color: Colors.white, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                    ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios_rounded,
-                    color: AppColors.white, size: 14.sp),
+                Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 14.sp),
               ],
             ),
           ),
@@ -210,49 +250,45 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Offer a Ride'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          Stack(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const DriverRequestsScreen()),
-                ),
-                icon: const Icon(Icons.notifications_rounded),
-              ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  width: 8.w,
-                  height: 8.w,
-                  decoration: const BoxDecoration(
-                    color: AppColors.error,
-                    shape: BoxShape.circle,
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 110.h,
+            elevation: 0,
+            backgroundColor: AppColors.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
+              title: Text('Offer a Ride', style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0F9D58), Color(0xFF1A3C34)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
               ),
+            ),
+            actions: [
+              IconButton(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const DriverRequestsScreen()));
+                },
+                icon: const Icon(Icons.notifications_rounded, color: Colors.white),
+              ),
             ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
+          SliverToBoxAdapter(child: Column(children: [
           _buildActiveRideBanner(),
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 40.h),
-              child: Column(
+          Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 40.h),
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionCard(
@@ -486,6 +522,45 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                           onChanged: (val) => setState(() => _womenOnly = val),
                         ),
                         const Divider(),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Payment Method 💰', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                                    Text('How passengers should pay', style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary)),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: DropdownButton<String>(
+                                  value: _paymentMethod,
+                                  underline: const SizedBox(),
+                                  icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                                  items: ['Cash', 'Online UPI', 'Both'].map((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value, style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) setState(() => _paymentMethod = val);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(),
                         _buildPreferenceToggle(
                           title: 'Music Allowed 🎵',
                           subtitle: 'Can passengers play music?',
@@ -520,53 +595,64 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                   SizedBox(height: 32.h),
                   SizedBox(
                     width: double.infinity,
-                    height: 54.h,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _offerRide,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
+                    height: 56.h,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: _isLoading
+                              ? [AppColors.textHint, AppColors.textHint]
+                              : AppColors.primaryGradient,
                         ),
-                        elevation: 0,
+                        borderRadius: BorderRadius.circular(18.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(_isLoading ? 0 : 0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 7),
+                          ),
+                        ],
                       ),
-                      icon: _isLoading
-                          ? SizedBox(
-                              width: 20.w,
-                              height: 20.w,
-                              child: const CircularProgressIndicator(
-                                  color: AppColors.white, strokeWidth: 2),
-                            )
-                          : const Icon(Icons.directions_car_rounded),
-                      label: Text(
-                        _isLoading ? 'Publishing...' : 'Publish Ride',
-                        style: TextStyle(
-                            fontSize: 16.sp, fontWeight: FontWeight.bold),
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _offerRide,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+                        ),
+                        icon: _isLoading
+                            ? SizedBox(width: 20.w, height: 20.w, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : const Icon(Icons.rocket_launch_rounded, color: Colors.white),
+                        label: Text(
+                          _isLoading ? 'Publishing...' : 'Publish Ride',
+                          style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(height: 32.h),
+                  SizedBox(height: 100.h),
                 ],
               ),
-            ),
           ),
+          ])),
         ],
       ),
     );
   }
 
   Widget _buildSectionCard({required String title, required Widget child}) {
+    final isDark = false; // Will use Theme.of(context) in real use
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -577,9 +663,8 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
             title,
             style: TextStyle(
               fontSize: 15.sp,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
-              letterSpacing: 0.5,
             ),
           ),
           SizedBox(height: 16.h),
@@ -635,8 +720,11 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
           ),
           Switch(
             value: value,
-            onChanged: onChanged,
-            activeTrackColor: AppColors.primary.withValues(alpha: 0.2),
+            onChanged: (v) {
+              HapticFeedback.selectionClick();
+              onChanged(v);
+            },
+            activeTrackColor: AppColors.primary.withOpacity(0.2),
             activeColor: AppColors.primary,
           ),
         ],

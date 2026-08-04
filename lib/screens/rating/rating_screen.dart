@@ -641,9 +641,19 @@ class _RatingScreenState extends State<RatingScreen>
                 // Lottie success animation
                 SizedBox(
                   height: 200.h,
-                  child: Lottie.network(
-                    'https://lottie.host/1de5cd86-cead-4bcc-b5d3-2d3ea7d5b851/IqTFksMPxI.json',
-                    repeat: false,
+                  child: Center(
+                    child: Container(
+                      padding: EdgeInsets.all(30.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        size: 100.sp,
+                        color: AppColors.success,
+                      ),
+                    ),
                   ),
                 ),
 

@@ -1,17 +1,71 @@
-# saath_chalo
+# Saath Chalo 🚗💚
 
-A new Flutter project.
+**Saath Chalo** is a premium, AI-powered carpooling application designed specifically for India. It aims to reduce carbon emissions, traffic congestion, and commuting costs by effortlessly connecting riders and drivers heading in the same direction.
 
-## Getting Started
+<p align="center">
+  <img src="assets/images/app_icon.png" alt="Saath Chalo App Icon" width="150"/>
+</p>
 
-This project is a starting point for a Flutter application.
+## ✨ Key Features
 
-A few resources to get you started if this is your first Flutter project:
+- **Live Google Maps Integration:** Seamless location picking, dynamic routing, and real-time live map tracking using `google_maps_flutter` and `geolocator`.
+- **Razorpay Payment Gateway:** Fully integrated secure payment system supporting online payments (UPI, NetBanking, Cards) as well as Cash. Platform fees are dynamically calculated.
+- **Robust Admin Dashboard:** A beautiful analytics suite using `fl_chart` to track active rides, revenue, total users, and moderate flagged reviews or SOS alerts.
+- **Push Notifications:** Firebase Cloud Messaging (FCM) is fully wired for instant alerts on ride requests, payment confirmations, and chat messages.
+- **Real-Time Chat & Calls:** Communicate instantly with your driver/rider using Firebase Firestore and the native phone dialer integration.
+- **Advanced Ride Preferences:** Filter rides by Women-Only, Music Allowed, Pets Allowed, Smoking, and AC preference.
+- **Gamification & Eco-Tracking:** Users can track their Total Money Saved and Total CO2 Emissions Reduced per ride.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## 🛠 Tech Stack
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Frontend:** Flutter & Dart
+- **Backend:** Firebase (Auth, Firestore, Cloud Messaging)
+- **Maps:** Google Maps Platform (Maps SDK, Places SDK, Directions API)
+- **Payments:** Razorpay Flutter SDK
+- **State Management:** Provider
+- **UI Toolkit:** `flutter_screenutil` (responsive sizing), `google_fonts`, `lottie` (animations)
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Flutter SDK (>=3.0.0)
+- Firebase Project configured (Add your `google-services.json` and `GoogleService-Info.plist`)
+- Google Maps API Key
+- Razorpay API Key
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/saath_chalo.git
+   cd saath_chalo
+   ```
+
+2. **Configure Secrets**
+   Open `lib/core/constants/secrets.dart` and add your API keys:
+   ```dart
+   class Secrets {
+     static const String mapsApiKey = 'YOUR_GOOGLE_MAPS_KEY';
+     static const String razorpayKey = 'YOUR_RAZORPAY_KEY';
+   }
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   flutter pub get
+   ```
+
+4. **Generate App Assets**
+   We use packages to auto-generate the native splash screen and launcher icons. Run:
+   ```bash
+   dart run flutter_launcher_icons
+   dart run flutter_native_splash:create
+   ```
+
+5. **Run the App**
+   ```bash
+   flutter run
+   ```
+
+## 🌍 Impact
+By using Saath Chalo, every shared ride contributes directly to reducing India's carbon footprint. Track your impact right on your profile!

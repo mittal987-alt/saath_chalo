@@ -23,6 +23,8 @@ import '../ride/ride_details_screen.dart';
 import '../ai/ai_assistant_screen.dart';
 import '../ride/driver_requests_screen.dart';
 import '../ride/my_bookings_screen.dart';
+import '../driver/driver_dashboard_screen.dart';
+import '../driver/driver_verification_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/language_switcher.dart';
@@ -533,7 +535,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      extendBody: true,
       body: SafeArea(
         bottom: false,
         child: _buildBody(),
@@ -603,32 +604,59 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Namaste! 👋',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: AppColors.white.withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w500,
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Namaste! 👋',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: AppColors.white.withValues(alpha: 0.75),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    _userModel?.name ??
-                        _user?.displayName ??
-                        'User',
-                    style: TextStyle(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.white,
+                    SizedBox(height: 2.h),
+                    Text(
+                      _userModel?.name ??
+                          _user?.displayName ??
+                          'User',
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               Row(
                 children: [
+                  GestureDetector(
+                    onTap: () {
+                      if (_userModel?.isDriverVerified == true) {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const DriverDashboardScreen()));
+                      } else {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const DriverVerificationScreen()));
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.directions_car_rounded, color: AppColors.white, size: 16.sp),
+                          SizedBox(width: 4.w),
+                          Text('Offer Ride', style: TextStyle(color: AppColors.white, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
                   const LanguageSwitcher(),
                   SizedBox(width: 8.w),
                   IconButton(
@@ -743,17 +771,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   MaterialPageRoute(
                       builder: (context) => const FindRideScreen()),
-                ),
-              ),
-              SizedBox(width: 12.w),
-              _buildActionCard(
-                l10n?.offerRide ?? 'Offer Ride',
-                Icons.directions_car_rounded,
-                AppColors.secondary,
-                    () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const OfferRideScreen()),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -993,7 +1010,20 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 SizedBox(
                   height: 150.h,
-                  child: Lottie.network('https://lottie.host/804c8612-4cf0-4963-8a30-80252ad8b9ed/cWl4XFhH0R.json'), // A generic empty state lottie url
+                  child: Center(
+                    child: Container(
+                      padding: EdgeInsets.all(20.w),
+                      decoration: BoxDecoration(
+                        color: AppColors.background.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.local_taxi_rounded,
+                        size: 60.sp,
+                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
                 ),
                 Text('No recent rides', style: TextStyle(color: AppColors.textSecondary, fontSize: 14.sp)),
               ],
@@ -1316,19 +1346,27 @@ class _HomeScreenState extends State<HomeScreen> {
       highlightColor: Colors.transparent,
       child: Container(
         padding:
-        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildChatNavIcon(isSelected),
-            SizedBox(height: 3.h),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: isSelected ? EdgeInsets.all(6.w) : EdgeInsets.zero,
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              child: _buildChatNavIcon(isSelected),
+            ),
+            SizedBox(height: 4.h),
             Text(
               'Chat',
               style: TextStyle(
                 color: color,
-                fontSize: 10.sp,
+                fontSize: 9.sp,
                 fontWeight: isSelected
-                    ? FontWeight.bold
+                    ? FontWeight.w700
                     : FontWeight.w500,
               ),
             ),

@@ -22,6 +22,7 @@ class RideModel {
   final bool petsAllowed;
   final bool smokingAllowed;
   final bool acPreferred;
+  final String paymentMethod;
   final String status;
   final DateTime createdAt;
 
@@ -47,6 +48,7 @@ class RideModel {
     this.petsAllowed = false,
     this.smokingAllowed = false,
     this.acPreferred = true,
+    this.paymentMethod = 'Cash',
     this.status = 'active',
     required this.createdAt,
   });
@@ -77,6 +79,7 @@ class RideModel {
         'smokingAllowed': smokingAllowed,
         'acPreferred': acPreferred,
       },
+      'paymentMethod': paymentMethod,
       'status': status,
       'createdAt': FieldValue.serverTimestamp(), // ✅ Always server time
     };
@@ -107,6 +110,7 @@ class RideModel {
       petsAllowed: prefs?['petsAllowed'] ?? false,
       smokingAllowed: prefs?['smokingAllowed'] ?? false,
       acPreferred: prefs?['acPreferred'] ?? true,
+      paymentMethod: map['paymentMethod'] ?? 'Cash',
       status: map['status'] ?? 'active',
       createdAt: _parseDate(map['createdAt']),
     );
@@ -149,6 +153,7 @@ class RideModel {
     bool? petsAllowed,
     bool? smokingAllowed,
     bool? acPreferred,
+    String? paymentMethod,
     String? status,
     DateTime? createdAt,
   }) {
@@ -174,6 +179,7 @@ class RideModel {
       petsAllowed: petsAllowed ?? this.petsAllowed,
       smokingAllowed: smokingAllowed ?? this.smokingAllowed,
       acPreferred: acPreferred ?? this.acPreferred,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
     );

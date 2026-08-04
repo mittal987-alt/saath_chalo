@@ -92,13 +92,19 @@ class MyBookingsScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SizedBox(
-                          height: 180.h,
-                          child: Lottie.network(
-                            'https://lottie.host/804c8612-4cf0-4963-8a30-80252ad8b9ed/cWl4XFhH0R.json',
+                        Container(
+                          padding: EdgeInsets.all(20.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.background.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.directions_car_filled_outlined,
+                            size: 80.sp,
+                            color: AppColors.textSecondary.withValues(alpha: 0.5),
                           ),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: 24.h),
                         Text(
                           'No rides booked yet!',
                           style: TextStyle(

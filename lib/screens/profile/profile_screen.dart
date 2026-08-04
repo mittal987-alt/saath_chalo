@@ -18,6 +18,7 @@ import '../driver/earnings_dashboard_screen.dart';
 import 'safety_settings_screen.dart';
 import 'sos_settings_screen.dart';
 import '../payment/payment_history_screen.dart';
+import '../ride/my_bookings_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/language_provider.dart';
 import '../../l10n/app_localizations.dart';
@@ -390,6 +391,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuItem(Icons.star_rounded, 'My Ratings', 'See reviews from passengers', Colors.amber, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewsScreen(userId: _user?.uid ?? '', userName: _user?.displayName ?? 'User')))),
 
           _buildSectionTitle('Rides', isDark),
+          _buildMenuItem(Icons.event_seat_rounded, 'My Bookings', 'View active and upcoming rides', AppColors.primary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyBookingsScreen()))),
           _buildMenuItem(Icons.history_rounded, l10n.rideHistory, 'View your past trips', AppColors.secondary, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RideHistoryScreen()))),
           _buildMenuItem(Icons.payments_rounded, 'Payment History', 'Manage payments & receipts', AppColors.success, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()))),
 

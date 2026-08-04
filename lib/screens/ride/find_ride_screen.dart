@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -115,7 +116,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.08),
+            color: AppColors.primary.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -147,9 +148,9 @@ class _FindRideScreenState extends State<FindRideScreen> {
                 child: Container(
                   padding: EdgeInsets.all(10.w),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 1),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 1),
                   ),
                   child: Icon(Icons.swap_vert_rounded, color: AppColors.primary, size: 22.sp),
                 ),
@@ -178,7 +179,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
                 borderRadius: BorderRadius.circular(16.r),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -247,7 +248,20 @@ class _FindRideScreenState extends State<FindRideScreen> {
         children: [
           SizedBox(
             height: 180.h,
-            child: Lottie.network('https://lottie.host/a4de3b1d-e5dd-481b-9cb2-77fd1ef91db4/cepFJ2VJbA.json'),
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.all(24.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.search_rounded,
+                  size: 80.sp,
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
           ),
           Text(
             'Find your perfect carpool',
@@ -301,7 +315,20 @@ class _FindRideScreenState extends State<FindRideScreen> {
                 children: [
                   SizedBox(
                     height: 160.h,
-                    child: Lottie.network('https://lottie.host/804c8612-4cf0-4963-8a30-80252ad8b9ed/cWl4XFhH0R.json'),
+                    child: Center(
+                      child: Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.local_taxi_rounded,
+                          size: 60.sp,
+                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
                   ),
                   Text('No rides available right now!',
                       style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
@@ -355,7 +382,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
@@ -431,14 +458,14 @@ class _LiveRideCardState extends State<_LiveRideCard> {
         final int availableSeats = d['availableSeats'] ?? 0;
         final double pricePerSeat =
         (d['pricePerSeat'] ?? 0).toDouble();
+        final String driverPhone = d['driverPhone'] ?? '';
+        final String vehicle = d['vehicle'] ?? '';
+        final double driverRating = (d['driverRating'] ?? 5.0).toDouble();
         final String driverName = d['driverName'] ?? 'Driver';
         final String driverUid = d['driverUid'] ?? '';
         final String from = d['from'] ?? '';
         final String to = d['to'] ?? '';
-        final String vehicle = d['vehicle'] ?? '';
         final String rideTime = d['rideTime'] ?? '';
-        final double driverRating =
-        (d['driverRating'] ?? 5.0).toDouble();
 
         // Preferences
         final bool musicAllowed = d['preferences']?['musicAllowed'] ?? d['musicAllowed'] ?? true;
@@ -470,7 +497,7 @@ class _LiveRideCardState extends State<_LiveRideCard> {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(widget.isDark ? 0.0 : 0.05),
+            color: AppColors.primary.withValues(alpha: widget.isDark ? 0.0 : 0.05),
                 blurRadius: 15,
                 offset: const Offset(0, 6),
               ),
@@ -484,7 +511,7 @@ class _LiveRideCardState extends State<_LiveRideCard> {
                   CircleAvatar(
                     radius: 22.r,
                     backgroundColor:
-                    AppColors.primary.withOpacity(0.1),
+                    AppColors.primary.withValues(alpha: 0.1),
                     child: Icon(Icons.person_rounded,
                         color: AppColors.primary, size: 26.sp),
                   ),
@@ -533,7 +560,7 @@ class _LiveRideCardState extends State<_LiveRideCard> {
               ),
 
               SizedBox(height: 16.h),
-              Divider(color: AppColors.divider, height: 1),
+              const Divider(color: AppColors.divider, height: 1),
               SizedBox(height: 16.h),
 
               // Route
@@ -586,8 +613,8 @@ class _LiveRideCardState extends State<_LiveRideCard> {
                             horizontal: 8.w, vertical: 4.h),
                         decoration: BoxDecoration(
                           color: availableSeats <= 1
-                              ? AppColors.error.withOpacity(0.1)
-                              : AppColors.success.withOpacity(0.1),
+                              ? AppColors.error.withValues(alpha: 0.1)
+                              : AppColors.success.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: Row(
@@ -737,10 +764,10 @@ class _LiveRideCardState extends State<_LiveRideCard> {
                 padding: EdgeInsets.symmetric(
                     horizontal: 14.w, vertical: 10.h),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
+                  color: AppColors.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(10.r),
                   border: Border.all(
-                      color: AppColors.primary.withOpacity(0.2)),
+                      color: AppColors.primary.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -770,12 +797,15 @@ class _LiveRideCardState extends State<_LiveRideCard> {
                 onPressed: _isRequesting
                     ? null
                     : () => _sendBookingRequest(
-                  driverUid,
-                  driverName,
-                  from,
-                  to,
-                  pricePerSeat,
-                  totalAmount,
+                  driverUid: driverUid,
+                  driverName: driverName,
+                  driverPhone: driverPhone,
+                  vehicle: vehicle,
+                  driverRating: driverRating,
+                  from: from,
+                  to: to,
+                  pricePerSeat: pricePerSeat,
+                  totalAmount: totalAmount,
                 ),
                 child: _isRequesting
                     ? SizedBox(
@@ -800,9 +830,9 @@ class _LiveRideCardState extends State<_LiveRideCard> {
       margin: EdgeInsets.only(right: 8.w),
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -822,14 +852,17 @@ class _LiveRideCardState extends State<_LiveRideCard> {
     );
   }
 
-  Future<void> _sendBookingRequest(
-      String driverUid,
-      String driverName,
-      String from,
-      String to,
-      double pricePerSeat,
-      double totalAmount,
-      ) async {
+  Future<void> _sendBookingRequest({
+    required String driverUid,
+    required String driverName,
+    required String driverPhone,
+    required String vehicle,
+    required double driverRating,
+    required String from,
+    required String to,
+    required double pricePerSeat,
+    required double totalAmount,
+  }) async {
     setState(() => _isRequesting = true);
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -841,6 +874,8 @@ class _LiveRideCardState extends State<_LiveRideCard> {
       }
       final bookingId =
       DateTime.now().millisecondsSinceEpoch.toString();
+      
+      final String generatedOtp = (1000 + Random().nextInt(9000)).toString();
 
 
       final booking = BookingModel(
@@ -851,6 +886,9 @@ class _LiveRideCardState extends State<_LiveRideCard> {
         riderPhone: user?.phoneNumber ?? '',
         driverUid: driverUid,
         driverName: driverName,
+        driverPhone: driverPhone,      // ✅ Driver's phone for rider to call
+        vehicle: vehicle,              // ✅ Vehicle info for rider
+        driverRating: driverRating,    // ✅ Driver's rating
         from: from,
         to: to,
         rideDate: DateTime.now(),         // ✅ Add rideDate
@@ -859,6 +897,7 @@ class _LiveRideCardState extends State<_LiveRideCard> {
         totalPrice: totalAmount,          // ✅ Use totalPrice not totalAmount
         pricePerSeat: pricePerSeat,
         paymentMethod: 'Razorpay',
+        otp: generatedOtp,
         createdAt: DateTime.now(),
       );
 

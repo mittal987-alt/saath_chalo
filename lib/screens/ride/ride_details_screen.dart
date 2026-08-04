@@ -21,84 +21,128 @@ class RideDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Ride Details'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        elevation: 0,
-        actions: [
-          StreamBuilder<List<BookingModel>>(
-            stream: _firebaseService.getBookingsForRide(ride.rideId,
-                statuses: ['pending']),
-            builder: (context, snap) {
-              final count = snap.data?.length ?? 0;
-              return Stack(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const DriverRequestsScreen()),
-                    ),
-                    icon: const Icon(Icons.people_rounded),
-                  ),
-                  if (count > 0)
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        width: 16.w,
-                        height: 16.w,
-                        decoration: const BoxDecoration(
-                          color: AppColors.error,
-                          shape: BoxShape.circle,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // ── Premium Gradient SliverAppBar ──────────
+          SliverAppBar(
+            expandedHeight: 140.h,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: AppColors.primary,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            actions: [
+              StreamBuilder<List<BookingModel>>(
+                stream: _firebaseService.getBookingsForRide(ride.rideId,
+                    statuses: ['pending']),
+                builder: (context, snap) {
+                  final count = snap.data?.length ?? 0;
+                  return Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DriverRequestsScreen()),
                         ),
-                        child: Center(
-                          child: Text(
-                            '$count',
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold,
+                        icon: const Icon(Icons.people_rounded, color: Colors.white),
+                      ),
+                      if (count > 0)
+                        Positioned(
+                          right: 6,
+                          top: 6,
+                          child: Container(
+                            width: 16.w,
+                            height: 16.w,
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '$count',
+                                style: TextStyle(
+                                  fontSize: 9.sp,
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ),
+                    ],
+                  );
+                },
+              ),
+              IconButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReportIssueScreen(
+                      reportedId: ride.rideId,
+                      type: 'ride',
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.report_problem_outlined, color: Colors.white),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
+              title: Text(
+                'Ride Details',
+                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w800, color: Colors.white),
+              ),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0F9D58), Color(0xFF0B8043)],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -20, right: -20,
+                      child: Container(
+                        width: 130.w, height: 130.w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.07),
+                        ),
                       ),
                     ),
-                ],
-              );
-            },
-          ),
-          IconButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ReportIssueScreen(
-                  reportedId: ride.rideId,
-                  type: 'ride',
+                  ],
                 ),
               ),
             ),
-            icon: const Icon(Icons.report_problem_outlined),
+          ),
+
+          // ── Body ─────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                children: [
+                  _buildStatusCard(),
+                  SizedBox(height: 16.h),
+                  _buildRouteCard(),
+                  SizedBox(height: 16.h),
+                  _buildDetailsCard(),
+                  SizedBox(height: 16.h),
+                  _buildPassengersCard(),
+                  SizedBox(height: 16.h),
+                  _buildActionButtons(context),
+                  SizedBox(height: 32.h),
+                ],
+              ),
+            ),
           ),
         ],
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          children: [
-            _buildStatusCard(),
-            SizedBox(height: 16.h),
-            _buildRouteCard(),
-            SizedBox(height: 16.h),
-            _buildDetailsCard(),
-            SizedBox(height: 16.h),
-            _buildPassengersCard(),
-            SizedBox(height: 16.h),
-            _buildActionButtons(context),
-            SizedBox(height: 32.h),
-          ],
-        ),
       ),
     );
   }

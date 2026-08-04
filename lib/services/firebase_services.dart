@@ -135,6 +135,16 @@ class FirebaseService {
     await _db.collection('rides').doc(rideId).update({'status': status});
   }
 
+  Future<void> updateWalletBalance(String uid, double amountToAdd) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    if (doc.exists) {
+      final currentBalance = (doc.data()?['walletBalance'] ?? 0.0).toDouble();
+      await _db.collection('users').doc(uid).update({
+        'walletBalance': currentBalance + amountToAdd,
+      });
+    }
+  }
+
   // ==================
   // BOOKING METHODS
   // ==================
@@ -625,5 +635,33 @@ class FirebaseService {
         data: {'reviewId': reviewId, 'status': status},
       );
     }
+  }
+
+  // ==================
+  // PAYMENT METHODS
+  // ==================
+
+  Stream<QuerySnapshot> getPaymentHistory(String uid) {
+    return _db
+        .collection('payments')
+        .where('userId', isEqualTo: uid)
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
+  // ==================
+  // SAFETY SETTINGS
+  // ==================
+
+  Future<Map<String, dynamic>?> getSafetySettings(String uid) async {
+    final doc = await _db.collection('users').doc(uid).collection('settings').doc('safety').get();
+    if (doc.exists) {
+      return doc.data();
+    }
+    return null;
+  }
+
+  Future<void> updateSafetySettings(String uid, Map<String, dynamic> data) async {
+    await _db.collection('users').doc(uid).collection('settings').doc('safety').set(data, SetOptions(merge: true));
   }
 }
