@@ -249,10 +249,8 @@ class _RideChatScreenState extends State<RideChatScreen> {
                       horizontal: 16.w, vertical: 8.h),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = messages[index].data()
-                    as Map<String, dynamic>;
-                    final isMe =
-                        msg['senderId'] == _user?.uid;
+                    final msg = messages[index].data() as Map<String, dynamic>? ?? {};
+                    final isMe = msg['senderId'] == _user?.uid;
                     return _buildMessageBubble(msg, isMe);
                   },
                 );

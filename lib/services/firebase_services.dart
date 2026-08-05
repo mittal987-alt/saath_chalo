@@ -37,7 +37,8 @@ class FirebaseService {
 
   Future<UserModel?> getUser(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
-    if (doc.exists) return UserModel.fromMap(doc.data()!);
+    final data = doc.data();
+    if (doc.exists && data != null) return UserModel.fromMap(data);
     return null;
   }
 
@@ -123,7 +124,8 @@ class FirebaseService {
 
   Future<RideModel?> getRide(String rideId) async {
     final doc = await _db.collection('rides').doc(rideId).get();
-    if (doc.exists) return RideModel.fromMap(doc.data()!);
+    final data = doc.data();
+    if (doc.exists && data != null) return RideModel.fromMap(data);
     return null;
   }
 
@@ -232,7 +234,7 @@ class FirebaseService {
           return {'success': false, 'message': 'Ride not found!'};
         }
 
-        final int currentSeats = rideSnap.data()!['availableSeats'] ?? 0;
+        final int currentSeats = rideSnap.data()?['availableSeats'] ?? 0;
 
         if (currentSeats < seatsRequested) {
           return {
@@ -262,8 +264,9 @@ class FirebaseService {
       if (result['success'] == true) {
         final bookingDoc =
         await _db.collection('bookings').doc(bookingId).get();
-        if (bookingDoc.exists) {
-          final booking = BookingModel.fromMap(bookingDoc.data()!);
+        final bookingData = bookingDoc.data();
+        if (bookingDoc.exists && bookingData != null) {
+          final booking = BookingModel.fromMap(bookingData);
           await sendNotification(
             toUid: booking.riderUid,
             title: 'Ride Accepted! ✅',
@@ -289,8 +292,9 @@ class FirebaseService {
 
     final bookingDoc =
     await _db.collection('bookings').doc(bookingId).get();
-    if (bookingDoc.exists) {
-      final booking = BookingModel.fromMap(bookingDoc.data()!);
+    final bookingData = bookingDoc.data();
+    if (bookingDoc.exists && bookingData != null) {
+      final booking = BookingModel.fromMap(bookingData);
       await sendNotification(
         toUid: booking.riderUid,
         title: 'Ride Request Declined ❌',
@@ -302,11 +306,15 @@ class FirebaseService {
     }
   }
 
-  Future<void> markBookingPaid(String bookingId) async {
+  Future<void> updateBookingPayment(String bookingId, String status) async {
     await _db
         .collection('bookings')
         .doc(bookingId)
-        .update({'paymentStatus': 'paid'});
+        .update({'paymentStatus': status});
+  }
+
+  Future<void> markBookingPaid(String bookingId) async {
+    await updateBookingPayment(bookingId, 'paid');
   }
 
   Future<void> updateBookingStatus(
@@ -338,8 +346,9 @@ class FirebaseService {
     await batch.commit();
 
     final bookingDoc = await _db.collection('bookings').doc(bookingId).get();
-    if (bookingDoc.exists) {
-      final booking = BookingModel.fromMap(bookingDoc.data()!);
+    final bookingData = bookingDoc.data();
+    if (bookingDoc.exists && bookingData != null) {
+      final booking = BookingModel.fromMap(bookingData);
       await sendNotification(
         toUid: booking.driverUid,
         title: 'Ride Booking Cancelled ❌',
@@ -637,31 +646,4 @@ class FirebaseService {
     }
   }
 
-  // ==================
-  // PAYMENT METHODS
-  // ==================
-
-  Stream<QuerySnapshot> getPaymentHistory(String uid) {
-    return _db
-        .collection('payments')
-        .where('userId', isEqualTo: uid)
-        .orderBy('timestamp', descending: true)
-        .snapshots();
-  }
-
-  // ==================
-  // SAFETY SETTINGS
-  // ==================
-
-  Future<Map<String, dynamic>?> getSafetySettings(String uid) async {
-    final doc = await _db.collection('users').doc(uid).collection('settings').doc('safety').get();
-    if (doc.exists) {
-      return doc.data();
-    }
-    return null;
-  }
-
-  Future<void> updateSafetySettings(String uid, Map<String, dynamic> data) async {
-    await _db.collection('users').doc(uid).collection('settings').doc('safety').set(data, SetOptions(merge: true));
-  }
 }

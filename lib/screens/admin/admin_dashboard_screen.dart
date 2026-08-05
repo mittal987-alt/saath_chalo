@@ -673,7 +673,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
             return Column(
               children: snapshot.data!.docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
+                final data = doc.data() as Map<String, dynamic>? ?? {};
                 return _buildActivityItem({
                   'icon': _getActivityIcon(data['type']),
                   'color': _getActivityColor(data['type']),

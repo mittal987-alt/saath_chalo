@@ -162,7 +162,7 @@ class ChatListScreen extends StatelessWidget {
                       padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 100.h),
                       itemCount: chatDocs.length,
                       itemBuilder: (context, index) {
-                        final chatData = chatDocs[index].data() as Map<String, dynamic>;
+                        final chatData = chatDocs[index].data() as Map<String, dynamic>? ?? {};
                         final rideId = chatDocs[index].id;
 
                         return StreamBuilder<QuerySnapshot>(
@@ -178,7 +178,7 @@ class ChatListScreen extends StatelessWidget {
                             String time = '';
 
                             if (msgSnapshot.hasData && msgSnapshot.data!.docs.isNotEmpty) {
-                              final msgData = msgSnapshot.data!.docs.first.data() as Map<String, dynamic>;
+                              final msgData = msgSnapshot.data!.docs.first.data() as Map<String, dynamic>? ?? {};
                               lastMsg = msgData['text'] ?? '';
                               final ts = msgData['timestamp'] as Timestamp?;
                               if (ts != null) {
@@ -198,7 +198,7 @@ class ChatListScreen extends StatelessWidget {
                               time: time,
                               isMyMessage: msgSnapshot.hasData &&
                                   msgSnapshot.data!.docs.isNotEmpty &&
-                                  (msgSnapshot.data!.docs.first.data() as Map<String, dynamic>)['senderId'] == user?.uid,
+                                  ((msgSnapshot.data!.docs.first.data() as Map<String, dynamic>?)?['senderId'] == user?.uid),
                             );
                           },
                         );

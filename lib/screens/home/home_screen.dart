@@ -9,15 +9,14 @@ import '../../models/booking_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
-import 'package:lottie/lottie.dart' hide Marker;
 import '../../core/constants/app_colors.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../ride/find_ride_screen.dart';
-import '../ride/offer_ride_screen.dart';
 import 'map_screen.dart';
 import '../chat/chat_list_screen.dart';
 import '../chat/ride_chat_screen.dart';
 import '../profile/profile_screen.dart';
+import '../profile/notification_screen.dart';
 import '../profile/ride_history_screen.dart';
 import '../ride/ride_details_screen.dart';
 import '../ai/ai_assistant_screen.dart';
@@ -103,8 +102,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchUserData() async {
-    if (_user != null) {
-      final user = await FirebaseService().getUser(_user!.uid);
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      final user = await FirebaseService().getUser(currentUser.uid);
       if (mounted) setState(() => _userModel = user);
     }
   }
@@ -127,16 +127,23 @@ class _HomeScreenState extends State<HomeScreen> {
           return const SizedBox.shrink();
         }
         final doc = snapshot.data!.docs.first;
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data() as Map<String, dynamic>? ?? {};
         final String title = data['title'] ?? 'Notification';
         final String body = data['body'] ?? '';
 
         return GestureDetector(
           onTap: () async {
+            final navigator = Navigator.of(context);
             await FirebaseFirestore.instance
                 .collection('notifications')
                 .doc(doc.id)
                 .update({'isRead': true});
+            if (!mounted) return;
+            navigator.push(
+              MaterialPageRoute(
+                builder: (_) => const NotificationsScreen(),
+              ),
+            );
           },
           child: Container(
             margin: EdgeInsets.symmetric(
@@ -227,7 +234,16 @@ class _HomeScreenState extends State<HomeScreen> {
         return Stack(
           children: [
             IconButton(
-              onPressed: () => setState(() => _selectedIndex = 3),
+              onPressed: () {
+                if (mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  );
+                }
+              },
               icon: const Icon(Icons.notifications_rounded,
                   color: AppColors.white, size: 26),
             ),
@@ -282,8 +298,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         final booking = BookingModel.fromMap(
-            snapshot.data!.docs.first.data()
-            as Map<String, dynamic>);
+            snapshot.data!.docs.first.data() as Map<String, dynamic>? ?? {});
 
         return GestureDetector(
           onTap: () => Navigator.push(
@@ -382,8 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final count = snapshot.data!.docs.length;
         final booking = BookingModel.fromMap(
-            snapshot.data!.docs.first.data()
-            as Map<String, dynamic>);
+            snapshot.data!.docs.first.data() as Map<String, dynamic>? ?? {});
 
         return GestureDetector(
           onTap: () => Navigator.push(
@@ -482,11 +496,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Count chats where last message is NOT from me
             for (var doc in riderSnap.data?.docs ?? []) {
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data() as Map<String, dynamic>? ?? {};
               if (data['lastSenderId'] != uid) unread++;
             }
             for (var doc in driverSnap.data?.docs ?? []) {
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data() as Map<String, dynamic>? ?? {};
               if (data['lastSenderId'] != uid) unread++;
             }
 
@@ -987,9 +1001,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRecentRides() {
+    final currentUser = FirebaseAuth.instance.currentUser;
     return StreamBuilder<List<RideModel>>(
-      stream: _user != null
-          ? FirebaseService().getMyRides(_user!.uid)
+      stream: currentUser != null
+          ? FirebaseService().getMyRides(currentUser.uid)
           : null,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {

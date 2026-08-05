@@ -206,13 +206,11 @@ Powered by SaathChalo App 🇮🇳
             .snapshots(),
         builder: (context, snap) {
           if (snap.hasData && snap.data!.exists) {
-            final data =
-            snap.data!.data() as Map<String, dynamic>;
-            final loc = data['driverLocation'];
+            final data = snap.data!.data() as Map<String, dynamic>?;
+            final loc = data?['driverLocation'] as Map<String, dynamic>?;
             if (loc != null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _onDriverLocationUpdate(
-                    loc as Map<String, dynamic>);
+                _onDriverLocationUpdate(loc);
               });
             }
           }

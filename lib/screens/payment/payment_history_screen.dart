@@ -56,8 +56,7 @@ class PaymentHistoryScreen extends StatelessWidget {
                   physics: const BouncingScrollPhysics(),
                   itemCount: snapshot.data!.docs.length,
                   itemBuilder: (context, index) {
-                    final data = snapshot.data!.docs[index].data()
-                        as Map<String, dynamic>;
+                    final data = snapshot.data!.docs[index].data() as Map<String, dynamic>? ?? {};
                     final timestamp = data['timestamp'] as Timestamp?;
                     final date = timestamp != null
                         ? DateFormat('dd MMM yyyy, hh:mm a')

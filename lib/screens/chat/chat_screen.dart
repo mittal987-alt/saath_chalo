@@ -190,8 +190,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: EdgeInsets.all(16.w),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg =
-                    messages[index].data() as Map<String, dynamic>;
+                    final msg = messages[index].data() as Map<String, dynamic>? ?? {};
                     final isMe = msg['senderId'] == _currentUser?.uid;
                     return _buildMessageBubble(msg, isMe);
                   },

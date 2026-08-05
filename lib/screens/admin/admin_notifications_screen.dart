@@ -240,8 +240,7 @@ class _AdminNotificationsScreenState
 
                 return Column(
                   children: snapshot.data!.docs.map((doc) {
-                    final data =
-                    doc.data() as Map<String, dynamic>;
+                    final data = doc.data() as Map<String, dynamic>? ?? {};
                     return Container(
                       margin: EdgeInsets.only(bottom: 10.h),
                       padding: EdgeInsets.all(14.w),

@@ -90,7 +90,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       builder: (context, snapshot) {
         int unreadCount = 0;
         if (snapshot.hasData) {
-          unreadCount = snapshot.data!.docs.where((doc) => !(doc.data() as Map<String, dynamic>)['isRead']).length;
+          unreadCount = snapshot.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>?;
+            return !(data?['isRead'] ?? false);
+          }).length;
         }
 
         return Scaffold(
@@ -145,7 +148,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       itemCount: snapshot.data!.docs.length,
                       itemBuilder: (context, index) {
                         final doc = snapshot.data!.docs[index];
-                        final data = doc.data() as Map<String, dynamic>;
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
                         return _buildNotificationCard(doc.id, data);
                       },
                     ),

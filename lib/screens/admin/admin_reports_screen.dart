@@ -47,7 +47,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
           }
 
           final reports = snapshot.data!.docs
-              .map((doc) => ReportModel.fromMap(doc.data() as Map<String, dynamic>))
+              .map((doc) => ReportModel.fromMap(doc.data() as Map<String, dynamic>? ?? {}))
               .toList();
 
           return ListView.builder(

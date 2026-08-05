@@ -90,7 +90,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 var docs = snapshot.data!.docs;
                 if (_searchQuery.isNotEmpty) {
                   docs = docs.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
+                    final data = doc.data() as Map<String, dynamic>? ?? {};
                     final name =
                     (data['name'] ?? '').toString().toLowerCase();
                     final email =
@@ -104,8 +104,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   padding: EdgeInsets.all(16.w),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data =
-                    docs[index].data() as Map<String, dynamic>;
+                    final data = docs[index].data() as Map<String, dynamic>? ?? {};
                     final docId = docs[index].id;
                     return _buildUserCard(data, docId);
                   },

@@ -103,7 +103,7 @@ class ReviewsScreen extends StatelessWidget {
         }
 
         final reviews = snapshot.data!.docs
-            .map((doc) => ReviewModel.fromMap(doc.data() as Map<String, dynamic>))
+            .map((doc) => ReviewModel.fromMap(doc.data() as Map<String, dynamic>? ?? {}))
             .toList();
 
         if (reviews.isEmpty) {

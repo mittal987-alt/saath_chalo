@@ -143,8 +143,7 @@ class _EmergencyContactsScreenState
             padding: EdgeInsets.all(16.w),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
-              final data = snapshot.data!.docs[index].data()
-              as Map<String, dynamic>;
+              final data = snapshot.data!.docs[index].data() as Map<String, dynamic>? ?? {};
               final docId = snapshot.data!.docs[index].id;
               return _buildContactCard(data, docId);
             },

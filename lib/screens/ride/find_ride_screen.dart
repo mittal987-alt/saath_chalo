@@ -343,7 +343,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
           final toQuery = _toController.text.toLowerCase().trim();
 
           final docs = snapshot.data!.docs.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+            final data = doc.data() as Map<String, dynamic>? ?? {};
             final from = (data['from'] ?? '').toString().toLowerCase();
             final to = (data['to'] ?? '').toString().toLowerCase();
             final seats = data['availableSeats'] ?? 0;
@@ -394,7 +394,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
                 ),
               ),
               ...docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
+                final data = doc.data() as Map<String, dynamic>? ?? {};
                 return _LiveRideCard(
                   rideId: doc.id,
                   data: data,
@@ -454,7 +454,7 @@ class _LiveRideCardState extends State<_LiveRideCard> {
           return const SizedBox.shrink();
         }
 
-        final d = snap.data!.data() as Map<String, dynamic>;
+        final d = snap.data!.data() as Map<String, dynamic>? ?? {};
         final int availableSeats = d['availableSeats'] ?? 0;
         final double pricePerSeat =
         (d['pricePerSeat'] ?? 0).toDouble();

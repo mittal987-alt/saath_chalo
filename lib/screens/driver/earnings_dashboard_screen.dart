@@ -77,7 +77,7 @@ class _EarningsDashboardScreenState
 
           final allBookings = (snapshot.data?.docs ?? [])
               .map((doc) => BookingModel.fromMap(
-              doc.data() as Map<String, dynamic>))
+              doc.data() as Map<String, dynamic>? ?? {}))
               .toList();
 
           final filtered = _filterByPeriod(allBookings);

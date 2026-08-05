@@ -310,14 +310,12 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                 .snapshots(),
             builder: (context, snap) {
               if (snap.hasData && snap.data!.exists) {
-                final rideData =
-                snap.data!.data() as Map<String, dynamic>;
-                final loc = rideData['driverLocation'];
+                final rideData = snap.data!.data() as Map<String, dynamic>?;
+                final loc = rideData?['driverLocation'] as Map<String, dynamic>?;
                 if (loc != null) {
                   WidgetsBinding.instance
                       .addPostFrameCallback((_) {
-                    _onDriverLocationUpdated(
-                        loc as Map<String, dynamic>);
+                    _onDriverLocationUpdated(loc);
                   });
                 }
               }
@@ -457,13 +455,12 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             child: Column(
               children: [
                 _mapButton(Icons.sos_rounded, () async {
+                  final messenger = ScaffoldMessenger.of(context);
                   final uri = Uri(scheme: 'tel', path: '112');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri);
                   } else {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch dialer')));
-                    }
+                    messenger.showSnackBar(const SnackBar(content: Text('Could not launch dialer')));
                   }
                 }, color: AppColors.error),
                 SizedBox(height: 8.h),
@@ -628,7 +625,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                             children: [
                               Column(
                                 children: [
-                                  Container(width: 8.w, height: 8.w, decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
+                                  Container(width: 8.w, height: 8.w, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
                                   Container(width: 1.5, height: 18.h, color: AppColors.border),
                                   Icon(Icons.location_on_rounded, color: AppColors.error, size: 12.sp),
                                 ],
@@ -673,8 +670,9 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                       
                     if (widget.booking.paymentMethod == 'Cash' && widget.booking.paymentStatus == 'unpaid' && (_currentStatus == RideStatus.started || _currentStatus == RideStatus.ended))
                       _actionBar(Icons.payments_rounded, 'Mark as Paid (Cash)', AppColors.primary, () async {
-                         await FirebaseService().updateBookingPayment(widget.booking.bookingId, 'paid');
-                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment marked as paid!'), backgroundColor: AppColors.success));
+                         final messenger = ScaffoldMessenger.of(context);
+                         await FirebaseService().markBookingPaid(widget.booking.bookingId);
+                         messenger.showSnackBar(const SnackBar(content: Text('Payment marked as paid!'), backgroundColor: AppColors.success));
                       }),
                   ],
 

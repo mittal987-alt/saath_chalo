@@ -40,12 +40,17 @@ class _SignupScreenState extends State<SignupScreen> {
         password: _passwordController.text.trim(),
       );
 
+      final firebaseUser = credential.user;
+      if (firebaseUser == null) {
+        throw Exception('Unable to create user account.');
+      }
+
       // Update display name
-      await credential.user!.updateDisplayName(_nameController.text.trim());
+      await firebaseUser.updateDisplayName(_nameController.text.trim());
 
       // Save user to Firestore
       final user = UserModel(
-        uid: credential.user!.uid,
+        uid: firebaseUser.uid,
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),

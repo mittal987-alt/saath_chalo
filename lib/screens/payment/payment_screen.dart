@@ -89,8 +89,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
 
     // 3. Update User Stats (Money Saved & CO2 Saved)
-    if (_user != null) {
-      await _db.collection('users').doc(_user!.uid).update({
+    final userUid = _user?.uid;
+    if (userUid != null) {
+      await _db.collection('users').doc(userUid).update({
         'totalMoneySaved': FieldValue.increment(finalTotal),
         'totalCo2Saved': FieldValue.increment(1.5 * seats),
         'totalRides': FieldValue.increment(1),
@@ -197,8 +198,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
 
       // 3. Update User Stats
-      if (_user != null) {
-        await _db.collection('users').doc(_user!.uid).update({
+final userUid = _user?.uid;
+    if (userUid != null) {
+      await _db.collection('users').doc(userUid).update({
           'totalMoneySaved': FieldValue.increment(finalTotal),
           'totalCo2Saved': FieldValue.increment(1.5 * seats),
           'totalRides': FieldValue.increment(1),

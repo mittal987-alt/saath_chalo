@@ -197,7 +197,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
         }
 
         final booking = BookingModel.fromMap(
-            snapshot.data!.docs.first.data() as Map<String, dynamic>);
+            snapshot.data!.docs.first.data() as Map<String, dynamic>? ?? {});
 
         return GestureDetector(
           onTap: () => Navigator.push(

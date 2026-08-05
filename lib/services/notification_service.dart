@@ -70,10 +70,11 @@ class NotificationService {
   // Update FCM Token in Firestore
   Future<void> updateToken(String? token) async {
     token ??= await _messaging.getToken();
-    if (token != null && _auth.currentUser != null) {
+    final uid = _auth.currentUser?.uid;
+    if (token != null && uid != null) {
       await _db
           .collection('users')
-          .doc(_auth.currentUser!.uid)
+          .doc(uid)
           .set(
         {
           'fcmToken': token,

@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/firebase_services.dart';
 import '../../models/booking_model.dart';
 import '../ride/active_ride_screen.dart';
+import '../ride/driver_requests_screen.dart';
 import '../profile/profile_screen.dart';
 import '../ride/offer_ride_screen.dart';
 import '../home/home_screen.dart';
