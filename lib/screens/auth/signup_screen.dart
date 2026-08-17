@@ -50,19 +50,38 @@ class _SignupScreenState extends State<SignupScreen> {
 
       // Save user to Firestore
       final user = UserModel(
-        uid: firebaseUser.uid,
+        uid: firebaseUser.uid, // Use the ID from the newly created credential
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
+        profilePic: '',
+        isVerified: false,
+        isDriverVerified: false,
+        rating: 5.0,
+        totalRides: 0,
+        totalMoneySaved: 0.0,
+        totalCo2Saved: 0.0,
+        walletBalance: 0.0,
+        fcmToken: '',
         createdAt: DateTime.now(),
       );
-      await FirebaseService().saveUser(user);
 
-      // Update FCM token after signup
-      await NotificationService().updateToken(null);
+      try {
+        await FirebaseService().saveUser(user);
+      } catch (e) {
+        debugPrint('Firestore User Save Error: $e');
+        // Even if saving details fails, the Auth user is created. 
+        // We'll proceed to home where they can re-try profile setup if needed.
+      }
+
+      // Update FCM token after signup - non-blocking
+      NotificationService().updateToken(null).catchError((e) {
+        debugPrint('FCM Token Error: $e');
+      });
 
       // Go to Home
       if (mounted) {
+        setState(() => _isLoading = false);
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -70,12 +89,15 @@ class _SignupScreenState extends State<SignupScreen> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      setState(() => _isLoading = false);
-      String msg = 'Signup failed!';
+      if (mounted) setState(() => _isLoading = false);
+      String msg = e.message ?? 'Signup failed!';
       if (e.code == 'weak-password') msg = 'Password is too weak!';
       if (e.code == 'email-already-in-use') msg = 'Email already registered!';
       if (e.code == 'invalid-email') msg = 'Invalid email address!';
       _showSnack(msg, isError: true);
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      _showSnack('An unexpected error occurred: $e', isError: true);
     }
   }
 

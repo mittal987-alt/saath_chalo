@@ -399,6 +399,14 @@ class FirebaseService {
         .snapshots();
   }
 
+  Stream<List<BookingModel>> getDriverActiveBookingsList(String driverUid) {
+    return getDriverActiveBookings(driverUid).map(
+      (snapshot) => snapshot.docs
+          .map((doc) => BookingModel.fromMap(doc.data() as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
   // ✅ Transaction-safe seat booking
   Future<bool> bookSeat(String rideId, int seatsToBook) async {
     try {

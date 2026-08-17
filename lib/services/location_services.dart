@@ -22,6 +22,7 @@ class LocationService {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) return;
     }
+    if (permission == LocationPermission.deniedForever) return;
 
     // Update every 5 seconds OR every 10 meters — whichever comes first
     // This gives smooth tracking without battery drain
@@ -35,21 +36,45 @@ class LocationService {
     ).listen((Position position) {
       _uploadLocation(rideId, position, isDriver);
     });
+
+    try {
+      final currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      _uploadLocation(rideId, currentPosition, isDriver);
+    } catch (_) {}
   }
 
-  void _uploadLocation(
-      String rideId, Position position, bool isDriver) {
-    // Write directly to ride doc — no extra collection needed
-    // This fires Firestore listeners on rider's screen instantly
-    _db.collection('rides').doc(rideId).update({
-      'driverLocation': {
-        'lat': position.latitude,
-        'lng': position.longitude,
-        'heading': position.heading,
-        'speed': (position.speed * 3.6).roundToDouble(), // m/s → km/h
+  Map<String, dynamic> buildLocationPayload(Position position, {required bool isDriver}) {
+    final speedKmh = (position.speed * 3.6).roundToDouble();
+    final locationData = {
+      'lat': position.latitude,
+      'lng': position.longitude,
+      'heading': position.heading,
+      'speed': speedKmh < 0 ? 0.0 : speedKmh,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    return {
+      'driverLocation': locationData,
+      'tracking': {
+        'isActive': true,
+        'isDriver': isDriver,
+        'updatedBy': _uid,
         'updatedAt': FieldValue.serverTimestamp(),
       },
-    });
+      'lastUpdatedAt': FieldValue.serverTimestamp(),
+      'lastUpdatedBy': _uid,
+    };
+  }
+
+  void _uploadLocation(String rideId, Position position, bool isDriver) {
+    // Write directly to ride doc — no extra collection needed
+    // This fires Firestore listeners on rider's screen instantly
+    _db.collection('rides').doc(rideId).set(
+      buildLocationPayload(position, isDriver: isDriver),
+      SetOptions(merge: true),
+    );
   }
 
   // Stop sharing

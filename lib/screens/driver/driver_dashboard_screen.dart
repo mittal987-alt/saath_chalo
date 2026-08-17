@@ -185,11 +185,7 @@ class DriverActiveRidesScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: StreamBuilder<List<BookingModel>>(
-        stream: FirebaseService().getDriverRequests(uid).map(
-          (bookings) => bookings.where((b) => 
-            b.status == 'confirmed' || b.status == 'en_route' || b.status == 'started'
-          ).toList()
-        ),
+        stream: FirebaseService().getDriverActiveBookingsList(uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

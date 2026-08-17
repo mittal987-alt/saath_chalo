@@ -1,9 +1,9 @@
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:http/http.dart' as http;
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/secrets.dart';
+import '../../services/ai_assistant_service.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -19,27 +19,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final List<Map<String, dynamic>> _conversationHistory = [];
   bool _isLoading = false;
 
-  static const String _systemPrompt = '''
-You are SaathChalo AI, a helpful carpooling assistant for India.
-Help users with:
-- Finding best carpool routes in Indian cities
-- Calculating fare splits
-- Safety tips especially for women
-- Best travel times to avoid traffic
-- Carpooling etiquette
-- How to use the SaathChalo app
-- General travel advice in India
-
-Keep responses concise, friendly and helpful.
-Use emojis to make responses engaging.
-When asked about routes, suggest realistic Indian city routes.
-For fare calculation: typical rate is Rs 2-4 per km per person.
-Always respond in the same language the user writes in (Hindi or English).
-''';
-
-  // ✅ Supports both AIzaSy and AQ. key formats
-  static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   @override
   void initState() {
@@ -74,105 +53,154 @@ Always respond in the same language the user writes in (Hindi or English).
     _scrollToBottom();
 
     try {
-      // ✅ Add to conversation history for context
-      _conversationHistory.add({
-        'role': 'user',
-        'parts': [
-          {'text': text}
-        ],
-      });
+      final user = FirebaseAuth.instance.currentUser;
+      final db = FirebaseFirestore.instance;
 
-      final url = Uri.parse('$_baseUrl?key=${Secrets.geminiApiKey}');
+      Map<String, dynamic>? userData;
+      List<Map<String, dynamic>> bookings = [];
+      List<Map<String, dynamic>> offeredRides = [];
+      List<Map<String, dynamic>> reviews = [];
+      List<Map<String, dynamic>> payments = [];
+      List<Map<String, dynamic>> alerts = [];
+      List<Map<String, dynamic>> reports = [];
+      List<Map<String, dynamic>> notifications = [];
+      List<Map<String, dynamic>> sosAlerts = [];
+      List<Map<String, dynamic>> globalRides = [];
+      Map<String, dynamic>? safetySettings;
 
-      final requestBody = jsonEncode({
-        'system_instruction': {
-          'parts': [
-            {'text': _systemPrompt}
-          ]
-        },
-        'contents': _conversationHistory,
-        'generationConfig': {
-          'temperature': 0.7,
-          'maxOutputTokens': 800,
-          'topP': 0.8,
-          'topK': 40,
-        },
-        'safetySettings': [
-          {
-            'category': 'HARM_CATEGORY_HARASSMENT',
-            'threshold': 'BLOCK_ONLY_HIGH'
-          },
-          {
-            'category': 'HARM_CATEGORY_HATE_SPEECH',
-            'threshold': 'BLOCK_ONLY_HIGH'
-          },
-        ],
-      });
+      if (user != null) {
+        final userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          userData = userDoc.data();
+        }
 
-      debugPrint('Sending to Gemini API...');
+        // Safety Settings
+        final safetyDoc = await db.collection('users').doc(user.uid).collection('settings').doc('safety').get();
+        safetySettings = safetyDoc.data();
 
-      final response = await http
-          .post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: requestBody,
-      )
-          .timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => throw Exception('timeout'),
+        // Notifications
+        final notifSnapshot = await db
+            .collection('notifications')
+            .where('toUid', isEqualTo: user.uid)
+            .limit(10)
+            .get();
+        notifications = notifSnapshot.docs.map((doc) => doc.data()).toList();
+
+        // SOS Alerts
+        final sosSnapshot = await db
+            .collection('sos_alerts')
+            .where('uid', isEqualTo: user.uid)
+            .limit(5)
+            .get();
+        sosAlerts = sosSnapshot.docs.map((doc) => doc.data()).toList();
+
+        // Global Active Rides (Snapshot for AI to see availability)
+        final globalRideSnapshot = await db
+            .collection('rides')
+            .where('status', isEqualTo: 'active')
+            .limit(10)
+            .get();
+        globalRides = globalRideSnapshot.docs.map((doc) => doc.data()).toList();
+
+        final bookingSnapshot = await db
+            .collection('bookings')
+            .where('riderUid', isEqualTo: user.uid)
+            .limit(5)
+            .get();
+        bookings = bookingSnapshot.docs
+            .map((doc) => Map<String, dynamic>.from(doc.data()))
+            .toList();
+
+        final rideSnapshot = await db
+            .collection('rides')
+            .where('driverUid', isEqualTo: user.uid)
+            .limit(5)
+            .get();
+        offeredRides = rideSnapshot.docs
+            .map((doc) => Map<String, dynamic>.from(doc.data()))
+            .toList();
+
+        final reviewSnapshot = await db
+            .collection('reviews')
+            .where('reviewerId', isEqualTo: user.uid)
+            .limit(5)
+            .get();
+        reviews = reviewSnapshot.docs
+            .map((doc) => Map<String, dynamic>.from(doc.data()))
+            .toList();
+
+        final paymentSnapshot = await db
+            .collection('payments')
+            .where('userId', isEqualTo: user.uid)
+            .limit(5)
+            .get();
+        payments = paymentSnapshot.docs
+            .map((doc) => Map<String, dynamic>.from(doc.data()))
+            .toList();
+
+        final alertSnapshot = await db
+            .collection('ride_alerts')
+            .where('uid', isEqualTo: user.uid)
+            .limit(5)
+            .get();
+        alerts = alertSnapshot.docs
+            .map((doc) => Map<String, dynamic>.from(doc.data()))
+            .toList();
+
+        final reportSnapshot = await db
+            .collection('reports')
+            .where('reporterId', isEqualTo: user.uid)
+            .limit(3)
+            .get();
+        reports = reportSnapshot.docs
+            .map((doc) => Map<String, dynamic>.from(doc.data()))
+            .toList();
+      }
+
+      final aiText = await AIAssistantService.askAssistant(
+        message: text,
+        history: _conversationHistory,
+        user: userData != null
+            ? {
+                'name': userData['name'] ?? user?.displayName ?? 'User',
+                'totalRides': userData['totalRides'] ?? 0,
+                'totalMoneySaved': userData['totalMoneySaved'] ?? 0.0,
+                'totalCo2Saved': userData['totalCo2Saved'] ?? 0.0,
+                'rating': userData['rating'] ?? 0.0,
+                'walletBalance': userData['walletBalance'] ?? 0.0,
+              }
+            : null,
+        bookings: bookings,
+        offeredRides: offeredRides,
+        reviews: reviews,
+        payments: payments,
+        alerts: alerts,
+        reports: reports,
+        notifications: notifications,
+        sosAlerts: sosAlerts,
+        globalRides: globalRides,
+        safetySettings: safetySettings,
       );
 
-      debugPrint('Response status: ${response.statusCode}');
+      // ✅ Add conversation to history
+      _conversationHistory.add({'role': 'user', 'content': text});
+      _conversationHistory.add({'role': 'assistant', 'content': aiText});
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
 
-        // ✅ Safe extraction of response text
-        final candidates = data['candidates'] as List?;
-        if (candidates == null || candidates.isEmpty) {
-          throw Exception('empty_response');
-        }
+      // ✅ Keep history manageable (last 20 messages)
+      if (_conversationHistory.length > 20) {
+        _conversationHistory.removeAt(0);
+      }
 
-        final content = candidates[0]['content'];
-        final parts = content['parts'] as List?;
-        if (parts == null || parts.isEmpty) {
-          throw Exception('empty_response');
-        }
-
-        final aiText = parts[0]['text']?.toString() ?? '';
-        if (aiText.isEmpty) throw Exception('empty_response');
-
-        // ✅ Add AI response to history
-        _conversationHistory.add({
-          'role': 'model',
-          'parts': [
-            {'text': aiText}
-          ],
-        });
-
-        // ✅ Keep history manageable (last 20 messages)
-        if (_conversationHistory.length > 20) {
-          _conversationHistory.removeAt(0);
-        }
-
-        if (mounted) {
-          setState(() {
-            _messages.add({
-              'text': aiText,
-              'isUser': false,
-              'isError': false,
-            });
-            _isLoading = false;
+      if (mounted) {
+        setState(() {
+          _messages.add({
+            'text': aiText,
+            'isUser': false,
+            'isError': false,
           });
-        }
-      } else {
-        debugPrint('Error body: ${response.body}');
-        final error = jsonDecode(response.body);
-        final msg =
-            error['error']?['message'] ?? 'Status ${response.statusCode}';
-        throw Exception(msg);
+          _isLoading = false;
+        });
       }
     } catch (e) {
       debugPrint('AI Error: $e');
@@ -200,11 +228,11 @@ Always respond in the same language the user writes in (Hindi or English).
     if (error.contains('timeout')) {
       return '⏱️ Request timed out!\nPlease check your internet and try again.';
     }
-    if (error.contains('API_KEY') ||
-        error.contains('apiKey') ||
-        error.contains('API key') ||
-        error.contains('400')) {
-      return '🔑 API Key issue!\nPlease check your Gemini API key.\n\nGet a new key from:\naistudio.google.com/app/apikey';
+    if (error.contains('Mistral') || error.contains('401') || error.contains('403')) {
+      return '🔑 Mistral API Key issue!\nPlease check the console configuration.';
+    }
+    if (error.contains('Tavily')) {
+      return '🌐 Tavily Search error!\nI cannot get real-time info right now.';
     }
     if (error.contains('quota') ||
         error.contains('QUOTA') ||
@@ -280,7 +308,7 @@ Always respond in the same language the user writes in (Hindi or English).
               width: 36.w,
               height: 36.w,
               decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.2),
+                color: AppColors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.smart_toy_rounded,
@@ -310,10 +338,10 @@ Always respond in the same language the user writes in (Hindi or English).
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      'Powered by Gemini 2.0',
+                      'Powered by Mistral & Tavily',
                       style: TextStyle(
                         fontSize: 10.sp,
-                        color: AppColors.white.withOpacity(0.8),
+                        color: AppColors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -374,8 +402,8 @@ Always respond in the same language the user writes in (Hindi or English).
               height: 32.w,
               decoration: BoxDecoration(
                 color: isError
-                    ? AppColors.error.withOpacity(0.1)
-                    : AppColors.primary.withOpacity(0.1),
+                    ? AppColors.error.withValues(alpha: 0.1)
+                    : AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -397,7 +425,7 @@ Always respond in the same language the user writes in (Hindi or English).
                 color: isUser
                     ? AppColors.primary
                     : isError
-                    ? AppColors.error.withOpacity(0.08)
+                    ? AppColors.error.withValues(alpha: 0.08)
                     : AppColors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16.r),
@@ -407,11 +435,11 @@ Always respond in the same language the user writes in (Hindi or English).
                 ),
                 border: isError
                     ? Border.all(
-                    color: AppColors.error.withOpacity(0.3))
+                    color: AppColors.error.withValues(alpha: 0.3))
                     : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -447,7 +475,7 @@ Always respond in the same language the user writes in (Hindi or English).
             width: 32.w,
             height: 32.w,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.smart_toy_rounded,
@@ -462,7 +490,7 @@ Always respond in the same language the user writes in (Hindi or English).
               borderRadius: BorderRadius.circular(16.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 4,
                 ),
               ],
@@ -498,10 +526,10 @@ Always respond in the same language the user writes in (Hindi or English).
               padding: EdgeInsets.symmetric(
                   horizontal: 12.w, vertical: 6.h),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16.r),
                 border: Border.all(
-                    color: AppColors.primary.withOpacity(0.25)),
+                    color: AppColors.primary.withValues(alpha: 0.25)),
               ),
               child: Text(
                 s['text']!,
@@ -526,7 +554,7 @@ Always respond in the same language the user writes in (Hindi or English).
         color: AppColors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -639,7 +667,7 @@ class _AnimatedDotState extends State<_AnimatedDot>
           margin: EdgeInsets.symmetric(horizontal: 2.w),
           decoration: BoxDecoration(
             color: AppColors.primary
-                .withOpacity(0.3 + (_anim.value * 0.7)),
+                .withValues(alpha: 0.3 + (_anim.value * 0.7)),
             borderRadius: BorderRadius.circular(4.r),
           ),
         );

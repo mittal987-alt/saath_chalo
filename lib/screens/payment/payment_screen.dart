@@ -78,6 +78,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'amount': finalTotal,
       'status': 'success',
       'method': 'online',
+      'type': 'PAYMENT',
+      'description': 'Ride to $to',
+      'route': '$from → $to',
       'timestamp': FieldValue.serverTimestamp(),
     });
 
@@ -186,6 +189,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'amount': finalTotal,
         'status': 'pending_cash',
         'method': 'cash',
+        'type': 'PAYMENT',
+        'description': 'Cash payment for $to',
+        'route': '$from → $to',
         'timestamp': FieldValue.serverTimestamp(),
       });
 

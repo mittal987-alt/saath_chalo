@@ -59,8 +59,16 @@ class _LoginScreenState extends State<LoginScreen>
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      await NotificationService().updateToken(null);
-      _goToHome();
+      
+      // Update FCM token in background - don't let it block navigation
+      NotificationService().updateToken(null).catchError((e) {
+        debugPrint('Token Update Error: $e');
+      });
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _goToHome();
+      }
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
       String msg = 'Login failed!';
@@ -72,9 +80,10 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _goToHome() {
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const HomeScreen()),
+      (route) => false,
     );
   }
 

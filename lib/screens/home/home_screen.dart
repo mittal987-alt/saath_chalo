@@ -11,6 +11,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../profile/safety_settings_screen.dart';
 import '../ride/find_ride_screen.dart';
 import 'map_screen.dart';
 import '../chat/chat_list_screen.dart';
@@ -64,8 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
               position: LatLng(ride.fromLat, ride.fromLng),
               infoWindow: InfoWindow(
                 title: '${ride.from} → ${ride.to}',
-                snippet:
-                '${ride.driverName} • ₹${ride.pricePerSeat}',
+                snippet: '${ride.driverName} • ₹${ride.pricePerSeat}',
               ),
               icon: BitmapDescriptor.defaultMarkerWithHue(
                   BitmapDescriptor.hueAzure),
@@ -78,8 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _getCurrentLocation() async {
     try {
-      LocationPermission permission =
-      await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
@@ -146,15 +145,14 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
           child: Container(
-            margin: EdgeInsets.symmetric(
-                horizontal: 16.w, vertical: 8.h),
+            margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             padding: EdgeInsets.all(14.w),
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(14.r),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                  color: AppColors.primary.withOpacity(0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -166,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 36.w,
                   height: 36.w,
                   decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.2),
+                    color: AppColors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.notifications_rounded,
@@ -191,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         body,
                         style: TextStyle(
                           fontSize: 12.sp,
-                          color: AppColors.white.withValues(alpha: 0.85),
+                          color: AppColors.white.withOpacity(0.85),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -207,8 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         .update({'isRead': true});
                   },
                   child: Icon(Icons.close_rounded,
-                      color: AppColors.white.withValues(alpha: 0.8),
-                      size: 18.sp),
+                      color: AppColors.white.withOpacity(0.8), size: 18.sp),
                 ),
               ],
             ),
@@ -277,8 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────
-  // ✅ Active Ride Chat Banner
-  // Shows when rider has an accepted/confirmed booking
+  // Active Ride Chat Banner
   // ─────────────────────────────────────────────
   Widget _buildActiveChatBanner() {
     final uid = _user?.uid ?? '';
@@ -311,16 +307,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: Container(
-            margin: EdgeInsets.symmetric(
-                horizontal: 16.w, vertical: 4.h),
-            padding: EdgeInsets.symmetric(
-                horizontal: 14.w, vertical: 10.h),
+            margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
             decoration: BoxDecoration(
               color: AppColors.secondary,
               borderRadius: BorderRadius.circular(14.r),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.secondary.withValues(alpha: 0.3),
+                  color: AppColors.secondary.withOpacity(0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -332,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 34.w,
                   height: 34.w,
                   decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.2),
+                    color: AppColors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.chat_rounded,
@@ -357,15 +351,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         '${booking.from} → ${booking.to}',
                         style: TextStyle(
                           fontSize: 11.sp,
-                          color: AppColors.white.withValues(alpha: 0.85),
+                          color: AppColors.white.withOpacity(0.85),
                         ),
                       ),
                     ],
                   ),
                 ),
                 Icon(Icons.arrow_forward_ios_rounded,
-                    color: AppColors.white.withValues(alpha: 0.8),
-                    size: 14.sp),
+                    color: AppColors.white.withOpacity(0.8), size: 14.sp),
               ],
             ),
           ),
@@ -375,8 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────
-  // ✅ Driver Active Ride Chat Banner
-  // Shows when driver has accepted bookings
+  // Driver Active Ride Chat Banner
   // ─────────────────────────────────────────────
   Widget _buildDriverChatBanner() {
     final uid = _user?.uid ?? '';
@@ -410,16 +402,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           child: Container(
-            margin: EdgeInsets.symmetric(
-                horizontal: 16.w, vertical: 4.h),
-            padding: EdgeInsets.symmetric(
-                horizontal: 14.w, vertical: 10.h),
+            margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
             decoration: BoxDecoration(
               color: const Color(0xFF1565C0),
               borderRadius: BorderRadius.circular(14.r),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1565C0).withValues(alpha: 0.3),
+                  color: const Color(0xFF1565C0).withOpacity(0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -431,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: 34.w,
                   height: 34.w,
                   decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.2),
+                    color: AppColors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.chat_rounded,
@@ -456,15 +446,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         '${booking.from} → ${booking.to}',
                         style: TextStyle(
                           fontSize: 11.sp,
-                          color: AppColors.white.withValues(alpha: 0.85),
+                          color: AppColors.white.withOpacity(0.85),
                         ),
                       ),
                     ],
                   ),
                 ),
                 Icon(Icons.arrow_forward_ios_rounded,
-                    color: AppColors.white.withValues(alpha: 0.8),
-                    size: 14.sp),
+                    color: AppColors.white.withOpacity(0.8), size: 14.sp),
               ],
             ),
           ),
@@ -474,11 +463,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────
-  // ✅ Chat Nav Badge — unread count
+  // Chat Nav Badge
   // ─────────────────────────────────────────────
   Widget _buildChatNavIcon(bool isSelected) {
     final uid = _user?.uid ?? '';
-    final color = isSelected ? AppColors.primary : AppColors.textHint.withValues(alpha: 0.6);
+    final color =
+    isSelected ? AppColors.primary : AppColors.textHint.withOpacity(0.6);
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -494,7 +484,6 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, driverSnap) {
             int unread = 0;
 
-            // Count chats where last message is NOT from me
             for (var doc in riderSnap.data?.docs ?? []) {
               final data = doc.data() as Map<String, dynamic>? ?? {};
               if (data['lastSenderId'] != uid) unread++;
@@ -545,14 +534,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildHeaderAction(
+      {required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20.r),
+      child: Container(
+        padding: EdgeInsets.all(8.w),
+        decoration: BoxDecoration(
+          color: AppColors.white.withOpacity(0.15),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: AppColors.white, size: 18.sp),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: _buildBody(),
-      ),
+      body: _buildBody(),
       bottomNavigationBar: _buildBottomNav(),
     );
   }
@@ -566,14 +568,14 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-              _buildNotificationBanner(),     // 🔔 Notifications
-              _buildActiveChatBanner(),       // 💬 Rider chat banner
-              _buildDriverChatBanner(),       // 💬 Driver chat banner
+              _buildNotificationBanner(),
+              _buildActiveChatBanner(),
+              _buildDriverChatBanner(),
               _buildQuickActions(),
               _buildMapPreview(),
               _buildRecentRides(),
               _buildStats(),
-              SizedBox(height: 100.h),
+              SizedBox(height: 120.h),
             ],
           ),
         );
@@ -594,16 +596,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader() {
     final l10n = AppLocalizations.of(context);
-    
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 28.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.withValues(alpha: 0.85)
-          ],
+          colors: [AppColors.primary, AppColors.primary.withOpacity(0.85)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -611,150 +609,152 @@ class _HomeScreenState extends State<HomeScreen> {
           bottomLeft: Radius.circular(28.r),
           bottomRight: Radius.circular(28.r),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 10.h, 12.w, 24.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Namaste! 👋',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: AppColors.white.withValues(alpha: 0.75),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      _userModel?.name ??
-                          _user?.displayName ??
-                          'User',
-                      style: TextStyle(
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.white,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      if (_userModel?.isDriverVerified == true) {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const DriverDashboardScreen()));
-                      } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const DriverVerificationScreen()));
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.directions_car_rounded, color: AppColors.white, size: 16.sp),
-                          SizedBox(width: 4.w),
-                          Text('Offer Ride', style: TextStyle(color: AppColors.white, fontSize: 12.sp, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Namaste! 👋',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppColors.white.withOpacity(0.75),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          _userModel?.name ?? _user?.displayName ?? 'User',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(width: 8.w),
-                  const LanguageSwitcher(),
-                  SizedBox(width: 8.w),
-                  IconButton(
-                    onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const MapScreen())),
-                    icon: const Icon(Icons.map_rounded,
-                        color: AppColors.white, size: 26),
-                  ),
-                  _buildNotificationBell(),
-                  GestureDetector(
-                    onTap: () => setState(() => _selectedIndex = 3),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: AppColors.white.withValues(alpha: 0.4),
-                            width: 1.5),
-                      ),
-                      child: CircleAvatar(
-                        radius: 20.r,
-                        backgroundColor:
-                        AppColors.white.withValues(alpha: 0.15),
-                        backgroundImage:
-                        _userModel?.profilePic.isNotEmpty == true
-                            ? NetworkImage(_userModel!.profilePic)
-                            : null,
-                        child:
-                        _userModel?.profilePic.isNotEmpty == true
-                            ? null
-                            : Icon(Icons.person_outline,
-                            color: AppColors.white,
-                            size: 20.sp),
-                      ),
+                  SizedBox(
+                    width: 195.w,
+                    child: Wrap(
+                      spacing: 4.w,
+                      runSpacing: 4.h,
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _buildHeaderAction(
+                          icon: Icons.directions_car_rounded,
+                          onTap: () {
+                            if (_userModel?.isDriverVerified == true) {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                      const DriverDashboardScreen()));
+                            } else {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                      const DriverVerificationScreen()));
+                            }
+                          },
+                        ),
+                        const LanguageSwitcher(),
+                        _buildHeaderAction(
+                          icon: Icons.map_rounded,
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const MapScreen())),
+                        ),
+                        _buildNotificationBell(),
+                        GestureDetector(
+                          onTap: () => setState(() => _selectedIndex = 3),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: AppColors.white.withOpacity(0.4),
+                                  width: 1.5),
+                            ),
+                            child: CircleAvatar(
+                              radius: 16.r,
+                              backgroundColor:
+                              AppColors.white.withOpacity(0.15),
+                              backgroundImage:
+                              _userModel?.profilePic.isNotEmpty == true
+                                  ? NetworkImage(_userModel!.profilePic)
+                                  : null,
+                              child: _userModel?.profilePic.isNotEmpty == true
+                                  ? null
+                                  : Icon(Icons.person_outline,
+                                  color: AppColors.white, size: 16.sp),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
+              ),
+              SizedBox(height: 16.h),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const FindRideScreen()),
+                ),
+                child: Container(
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(14.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search_rounded,
+                          color: AppColors.primary, size: 20.sp),
+                      SizedBox(width: 12.w),
+                      Text(
+                        l10n?.whereToGo ?? 'Where do you want to go?',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: AppColors.textSecondary.withOpacity(0.8),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
-
-          SizedBox(height: 24.h),
-
-          // Search Bar
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const FindRideScreen()),
-            ),
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: 16.w, vertical: 12.h),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(14.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.search_rounded,
-                      color: AppColors.primary, size: 20.sp),
-                  SizedBox(width: 12.w),
-                  Text(
-                    l10n?.whereToGo ?? 'Where do you want to go?',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color:
-                      AppColors.textSecondary.withValues(alpha: 0.8),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -775,7 +775,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           SizedBox(height: 14.h),
-          Row(
+          Wrap(
+            spacing: 12.w,
+            runSpacing: 12.h,
             children: [
               _buildActionCard(
                 l10n?.findRide ?? 'Find Ride',
@@ -787,7 +789,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       builder: (context) => const FindRideScreen()),
                 ),
               ),
-              SizedBox(width: 12.w),
               _buildActionCard(
                 l10n?.myRides ?? 'My Rides',
                 Icons.history_rounded,
@@ -795,12 +796,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) =>
-                      const RideHistoryScreen()),
+                      builder: (context) => const RideHistoryScreen()),
                 ),
               ),
-              SizedBox(width: 12.w),
-              // ✅ Chat quick action
+              _buildActionCard(
+                'Safety',
+                Icons.shield_rounded,
+                AppColors.error,
+                    () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SafetySettingsScreen()),
+                ),
+              ),
               _buildActionCard(
                 'Chats',
                 Icons.chat_rounded,
@@ -816,40 +824,43 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildActionCard(
       String title, IconData icon, Color color, VoidCallback onTap) {
-    return Expanded(
+    return SizedBox(
+      width: 78.w,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 16.h),
+          padding: EdgeInsets.symmetric(vertical: 12.h),
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(16.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: Colors.black.withOpacity(0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               )
             ],
-            border: Border.all(
-                color: color.withValues(alpha: 0.08), width: 1),
+            border: Border.all(color: color.withOpacity(0.08), width: 1),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 22.sp),
+                child: Icon(icon, color: color, size: 20.sp),
               ),
               SizedBox(height: 8.h),
               Text(
                 title,
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11.sp,
+                  fontSize: 10.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary,
                 ),
@@ -882,10 +893,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(width: 8.w),
                   Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 8.w, vertical: 4.h),
+                    padding:
+                    EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.1),
+                      color: AppColors.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6.r),
                     ),
                     child: Row(
@@ -912,86 +923,56 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () => Navigator.push(
+              TextButton(
+                onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const MapScreen()),
+                  MaterialPageRoute(builder: (_) => const MapScreen()),
                 ),
                 child: Text(
-                  'View All',
+                  'View Full',
                   style: TextStyle(
                     fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 10.h),
           Container(
             height: 180.h,
             width: double.infinity,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20.r),
+              borderRadius: BorderRadius.circular(16.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20.r),
-              child: Stack(
-                children: [
-                  _isLoadingMap
-                      ? Container(
-                    color: AppColors.background,
-                    child: Center(
-                        child: ShimmerLoading(width: double.infinity, height: 180.h, borderRadius: 20.r)),
-                  )
-                      : GoogleMap(
-                    initialCameraPosition: CameraPosition(
-                      target: _currentPosition != null
-                          ? LatLng(
-                          _currentPosition!.latitude,
-                          _currentPosition!.longitude)
-                          : _defaultLocation,
-                      zoom: 12,
-                    ),
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      if (_currentPosition != null) {
-                        _mapController?.animateCamera(
-                          CameraUpdate.newLatLng(LatLng(
-                            _currentPosition!.latitude,
-                            _currentPosition!.longitude,
-                          )),
-                        );
-                      }
-                    },
-                    markers: _rideMarkers,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: false,
-                    zoomControlsEnabled: false,
-                    scrollGesturesEnabled: false,
-                    rotateGesturesEnabled: false,
-                    tiltGesturesEnabled: false,
-                  ),
-                  Positioned.fill(
-                    child: GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const MapScreen()),
-                      ),
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                ],
+              borderRadius: BorderRadius.circular(16.r),
+              child: _isLoadingMap
+                  ? ShimmerLoading(width: double.infinity, height: 180.h, borderRadius: 16.r)
+                  : GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: _currentPosition != null
+                      ? LatLng(_currentPosition!.latitude,
+                      _currentPosition!.longitude)
+                      : _defaultLocation,
+                  zoom: 14,
+                ),
+                markers: _rideMarkers,
+                myLocationEnabled: true,
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                mapToolbarEnabled: false,
+                onMapCreated: (controller) {
+                  _mapController = controller;
+                },
               ),
             ),
           ),
@@ -1001,438 +982,272 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRecentRides() {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    return StreamBuilder<List<RideModel>>(
-      stream: currentUser != null
-          ? FirebaseService().getMyRides(currentUser.uid)
-          : null,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-            child: Column(
-              children: List.generate(2, (index) => Padding(
-                padding: EdgeInsets.only(bottom: 12.h),
-                child: ShimmerLoading(width: double.infinity, height: 80.h, borderRadius: 20.r),
-              )),
-            ),
-          );
-        }
-        final rides = snapshot.data ?? [];
-        if (rides.isEmpty) {
-          return Center(
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 150.h,
-                  child: Center(
-                    child: Container(
-                      padding: EdgeInsets.all(20.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.background.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.local_taxi_rounded,
-                        size: 60.sp,
-                        color: AppColors.textSecondary.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                ),
-                Text('No recent rides', style: TextStyle(color: AppColors.textSecondary, fontSize: 14.sp)),
-              ],
-            ),
-          );
-        }
-
-        return Padding(
-          padding:
-          EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'My Offered Rides',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                          const RideHistoryScreen()),
-                    ),
-                    child: Text('See All',
-                        style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.bold)),
-                  ),
-                ],
+              Text(
+                'Recent Rides',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              SizedBox(height: 4.h),
-              ...rides.take(3).map((ride) => GestureDetector(
-                onTap: () => Navigator.push(
+              TextButton(
+                onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        RideDetailScreen(ride: ride),
+                  MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
+                ),
+                child: Text(
+                  'See All',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
                   ),
                 ),
-                child: _buildRideCard(ride),
-              )),
+              ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildRideCard(RideModel ride) {
-    final isCompleted = ride.status == 'completed';
-    return Hero(
-      tag: 'ride_card_${ride.rideId}',
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.5), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48.w,
-            height: 48.w,
-            decoration: BoxDecoration(
-              color: ride.status == 'active'
-                  ? AppColors.primary.withValues(alpha: 0.1)
-                  : isCompleted
-                  ? AppColors.success.withValues(alpha: 0.1)
-                  : AppColors.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Icon(
-              ride.status == 'active'
-                  ? Icons.directions_car_rounded
-                  : isCompleted
-                  ? Icons.check_circle_rounded
-                  : Icons.cancel_rounded,
-              color: ride.status == 'active'
-                  ? AppColors.primary
-                  : isCompleted
-                  ? AppColors.success
-                  : AppColors.error,
-              size: 24.sp,
-            ),
-          ),
-          SizedBox(width: 16.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${ride.from} → ${ride.to}',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.2,
+          SizedBox(height: 8.h),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('rides')
+                .orderBy('createdAt', descending: true)
+                .limit(3)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return ShimmerLoading(height: 100.h, width: double.infinity, borderRadius: 14.r);
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Container(
+                  padding: EdgeInsets.all(20.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(14.r),
+                    border: Border.all(
+                        color: AppColors.textHint.withOpacity(0.1)),
                   ),
-                ),
-                SizedBox(height: 6.h),
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today_rounded, size: 12.sp, color: AppColors.textSecondary),
-                    SizedBox(width: 4.w),
-                    Text(
-                      '${ride.rideDate.day}/${ride.rideDate.month} • ${ride.rideTime}',
+                  child: Center(
+                    child: Text(
+                      'No recent rides available.',
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Text(
-              '₹${ride.pricePerSeat.toStringAsFixed(0)}',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w800,
-                color: AppColors.primary,
-              ),
-            ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  final ride = RideModel.fromMap(data);
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 10.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(14.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+                      leading: Container(
+                        padding: EdgeInsets.all(10.w),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.directions_car_rounded,
+                            color: AppColors.primary, size: 20.sp),
+                      ),
+                      title: Text(
+                        '${ride.from} → ${ride.to}',
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        'Driver: ${ride.driverName} • ₹${ride.pricePerSeat}',
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios_rounded,
+                          size: 14.sp, color: AppColors.textHint),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RideDetailScreen(ride: ride),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }).toList(),
+              );
+            },
           ),
         ],
       ),
-    ),
-    ),
     );
   }
 
   Widget _buildStats() {
     return Padding(
-      padding:
-      EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Your Impact 🌱',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 14.h),
-          Row(
-            children: [
-              _buildStatCard(
-                '₹${(_userModel?.totalMoneySaved ?? 0).toStringAsFixed(0)}',
-                'Money Saved',
-                Icons.savings_rounded,
-                AppColors.primary,
-              ),
-              SizedBox(width: 10.w),
-              _buildStatCard(
-                '${(_userModel?.totalCo2Saved ?? 0).toStringAsFixed(1)} kg',
-                'CO₂ Reduced',
-                Icons.eco_rounded,
-                AppColors.success,
-              ),
-              SizedBox(width: 10.w),
-              _buildStatCard(
-                '${_userModel?.totalRides ?? 0}',
-                'Total Rides',
-                Icons.directions_car_rounded,
-                AppColors.secondary,
-              ),
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withOpacity(0.08),
+              AppColors.secondary.withOpacity(0.08)
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildStatItem('Eco Friendly', '🌱 100%', 'Zero Emission'),
+            Container(
+                height: 30.h,
+                width: 1,
+                color: AppColors.textHint.withOpacity(0.2)),
+            _buildStatItem('Community', '👥 Trusted', 'Verified Peers'),
+            Container(
+                height: 30.h,
+                width: 1,
+                color: AppColors.textHint.withOpacity(0.2)),
+            _buildStatItem('Safety', '🛡️ 24/7', 'SOS & Support'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String title, String value, String subtitle) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primary,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 9.sp,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatCard(
-      String value, String label, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding:
-        EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.5), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24.sp),
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 10.sp,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────
-  // ✅ Bottom Nav with Chat Badge
-  // ─────────────────────────────────────────────
-  Widget _buildBottomNav() {
-    return Align(
-      alignment: const Alignment(0, 0.95),
-      child: Container(
-        margin: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h),
-        height: 68.h,
-        decoration: BoxDecoration(
-          color: AppColors.white.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(30.r),
-          border: Border.all(color: AppColors.white, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.15),
-              blurRadius: 30,
-              spreadRadius: 5,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30.r),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.home_rounded,
-                    Icons.home_outlined, 'Home'),
-                _buildChatNavItemWrapper(),
-                _buildNavItem(4, Icons.inbox_rounded,
-                    Icons.inbox_outlined, 'Requests'),
-                _buildNavItem(2, Icons.smart_toy_rounded,
-                    Icons.smart_toy_outlined, 'AI'),
-                _buildNavItem(3, Icons.person_rounded,
-                    Icons.person_outline_rounded, 'Profile'),
-                _buildNavItem(5, Icons.history_rounded,
-                    Icons.history_outlined, 'Rides'),
-              ],
-            ),
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
+              _buildNavItem(1, Icons.chat_bubble_rounded,
+                  Icons.chat_bubble_outline_rounded, 'Chats',
+                  customIcon: _buildChatNavIcon),
+              _buildNavItem(2, Icons.smart_toy_rounded,
+                  Icons.smart_toy_outlined, 'AI Assistant'),
+              _buildNavItem(3, Icons.person_rounded,
+                  Icons.person_outline_rounded, 'Profile'),
+              _buildNavItem(4, Icons.car_rental_rounded,
+                  Icons.car_rental_outlined, 'Requests'),
+              _buildNavItem(5, Icons.bookmark_rounded,
+                  Icons.bookmark_outline_rounded, 'Bookings'),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // ✅ Chat nav item with unread badge
-  Widget _buildChatNavItemWrapper() {
-    final isSelected = _selectedIndex == 1;
-    final color = isSelected
-        ? AppColors.primary
-        : AppColors.textHint.withValues(alpha: 0.6);
-
-    return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        setState(() => _selectedIndex = 1);
-      },
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      child: Container(
-        padding:
-        EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: isSelected ? EdgeInsets.all(6.w) : EdgeInsets.zero,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
-                shape: BoxShape.circle,
-              ),
-              child: _buildChatNavIcon(isSelected),
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              'Chat',
-              style: TextStyle(
-                color: color,
-                fontSize: 9.sp,
-                fontWeight: isSelected
-                    ? FontWeight.w700
-                    : FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData activeIcon,
-      IconData inactiveIcon, String label) {
+  Widget _buildNavItem(
+      int index, IconData activeIcon, IconData inactiveIcon, String label,
+      {Widget Function(bool)? customIcon}) {
     final isSelected = _selectedIndex == index;
-    final color = isSelected
-        ? AppColors.primary
-        : AppColors.textHint.withValues(alpha: 0.6);
+    final color =
+    isSelected ? AppColors.primary : AppColors.textHint.withOpacity(0.6);
 
     return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        setState(() => _selectedIndex = index);
-      },
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      child: Container(
-        padding:
-        EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      onTap: () => setState(() => _selectedIndex = index),
+      borderRadius: BorderRadius.circular(12.r),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: isSelected ? EdgeInsets.all(6.w) : EdgeInsets.zero,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isSelected ? activeIcon : inactiveIcon,
-                color: color,
-                size: 22.sp,
-              ),
+            customIcon != null
+                ? customIcon(isSelected)
+                : Icon(
+              isSelected ? activeIcon : inactiveIcon,
+              color: color,
+              size: 22.sp,
             ),
             SizedBox(height: 4.h),
             Text(
               label,
               style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: color,
-                fontSize: 9.sp,
-                fontWeight: isSelected
-                    ? FontWeight.w700
-                    : FontWeight.w500,
               ),
             ),
           ],

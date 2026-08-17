@@ -92,7 +92,6 @@ class ReviewsScreen extends StatelessWidget {
           .collection('reviews')
           .where('reviewedUserId', isEqualTo: userId)
           .where('status', isEqualTo: 'approved')
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {

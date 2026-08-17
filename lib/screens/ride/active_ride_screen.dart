@@ -34,10 +34,9 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   final LocationService _locationService = LocationService();
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   String _currentStatus = '';
-  double _driverLat = 0;
-  double _driverLng = 0;
   double _driverSpeed = 0;
   String _eta = '';
+  String _trackingStatus = 'Waiting for live location';
   bool _isUpdatingStatus = false;
   Position? _myPosition;
 
@@ -50,6 +49,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     _initLocation();
     // Driver starts sharing location automatically
     if (widget.isDriver) {
+      setState(() => _trackingStatus = 'Starting live tracking...');
       _locationService.startSharingLocation(
           widget.booking.rideId, true);
     }
@@ -78,9 +78,8 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     final speed = (loc['speed'] ?? 0).toDouble();
 
     setState(() {
-      _driverLat = lat;
-      _driverLng = lng;
       _driverSpeed = speed;
+      _trackingStatus = 'Live tracking active';
     });
 
     // Update driver marker
@@ -148,6 +147,8 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
       _isUpdatingStatus = false;
     });
 
+    final navigator = Navigator.of(context);
+
     // If ride ended — stop location sharing
     if (newStatus == RideStatus.ended) {
       await _locationService.stopSharingLocation();
@@ -159,12 +160,13 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             widget.booking.bookingId,
             widget.booking.rideId,
           );
+          if (!mounted) return;
           // Driver goes back
-          Navigator.pop(context);
+          navigator.pop();
         } else {
           // Rider goes to payment
-          Navigator.pushReplacement(
-            context,
+          if (!mounted) return;
+          navigator.pushReplacement(
             MaterialPageRoute(
               builder: (_) => PaymentScreen(
                 rideId: widget.booking.rideId,
@@ -211,6 +213,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   void _sendSOS() async {
     final settings = await FirebaseService().getSafetySettings(FirebaseAuth.instance.currentUser?.uid ?? '');
     final isHindi = settings?['isHindi'] ?? false;
+    final navigator = Navigator.of(context);
 
     showDialog(
       context: context,
@@ -235,7 +238,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              navigator.pop();
               
               if (_myPosition != null) {
                 // 1. Trigger Firestore SOS logic
@@ -279,7 +282,8 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                 }
 
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  final messenger = ScaffoldMessenger.of(context);
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text(isHindi ? '🆘 SOS अलर्ट भेज दिया गया है!' : '🆘 SOS Alert Sent!'),
                       backgroundColor: AppColors.error,
@@ -425,12 +429,23 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                     Icon(Icons.directions_car_rounded,
                         color: AppColors.primary, size: 18.sp),
                     SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        _eta.isNotEmpty ? _eta : 'Tracking live...',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
                     Text(
-                      _eta,
+                      _trackingStatus,
                       style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        fontSize: 11.sp,
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (_driverSpeed > 0) ...[

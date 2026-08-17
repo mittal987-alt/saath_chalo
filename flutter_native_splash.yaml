@@ -1,6 +1,6 @@
 flutter_native_splash:
   color: "#0F9D58"
-  image: "C:/Users/Aayush/.gemini/antigravity-ide/brain/4bf861a5-7642-4e67-91fd-8e260ebd452f/saath_chalo_icon_1785743933654.png"
+  image: "assets/icons/app_icon.png"
   android_12:
-    image: "C:/Users/Aayush/.gemini/antigravity-ide/brain/4bf861a5-7642-4e67-91fd-8e260ebd452f/saath_chalo_icon_1785743933654.png"
+    image: "assets/icons/app_icon.png"
     color: "#0F9D58"

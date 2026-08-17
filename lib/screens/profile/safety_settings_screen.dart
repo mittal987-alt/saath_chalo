@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/providers/locale_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../services/firebase_services.dart';
 
 class SafetySettingsScreen extends StatefulWidget {
@@ -42,7 +42,12 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         });
         // Sync global provider with Firestore setting
         if (settings['isHindi'] != null) {
-          context.read<LocaleProvider>().toggleLanguage(settings['isHindi']);
+          final langProvider = context.read<LanguageProvider>();
+          if (settings['isHindi'] == true) {
+            langProvider.setHindi();
+          } else {
+            langProvider.setEnglish();
+          }
         }
       } else {
         setState(() => _isLoading = false);
@@ -51,7 +56,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
   }
 
   Future<void> _updateSetting(String key, dynamic value) async {
-    final isHindi = context.read<LocaleProvider>().isHindi;
+    final isHindi = context.read<LanguageProvider>().isHindi;
     if (uid != null) {
       await FirebaseService().updateSafetySettings(uid!, {key: value});
       if (mounted) {
@@ -73,7 +78,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
   void _addEmergencyContact() {
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
-    final isHindi = context.read<LocaleProvider>().isHindi;
+    final isHindi = context.read<LanguageProvider>().isHindi;
 
     showDialog(
       context: context,
@@ -130,7 +135,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isHindi = context.watch<LocaleProvider>().isHindi;
+    final isHindi = context.watch<LanguageProvider>().isHindi;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -256,7 +261,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
           subtitle: isHindi ? 'ऐप को हिंदी में इस्तेमाल करें' : 'Use the app in Hindi',
           value: isHindi,
           onChanged: (val) {
-            context.read<LocaleProvider>().toggleLanguage(val);
+            context.read<LanguageProvider>().toggleLanguage();
             _updateSetting('isHindi', val);
           },
         ),
