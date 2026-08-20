@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/booking_model.dart';
+import '../../l10n/app_localizations.dart';
 
 class EarningsDashboardScreen extends StatefulWidget {
   const EarningsDashboardScreen({super.key});
@@ -17,12 +18,15 @@ class _EarningsDashboardScreenState
     extends State<EarningsDashboardScreen> {
   final String _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
   String _selectedPeriod = 'This Week';
-  final List<String> _periods = [
-    'Today',
-    'This Week',
-    'This Month',
-    'All Time'
-  ];
+
+  List<String> _getPeriods(AppLocalizations? l10n) {
+    return [
+      l10n?.today ?? 'Today',
+      l10n?.thisWeek ?? 'This Week',
+      l10n?.thisMonth ?? 'This Month',
+      l10n?.allTime ?? 'All Time'
+    ];
+  }
 
   // Filter bookings by period
   List<BookingModel> _filterByPeriod(List<BookingModel> bookings) {
@@ -47,10 +51,17 @@ class _EarningsDashboardScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    // Ensure selected period matches translated version if switched
+    final periods = _getPeriods(l10n);
+    if (!periods.contains(_selectedPeriod)) {
+      _selectedPeriod = periods[1]; // Default to This Week
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Earnings Dashboard'),
+        title: Text(l10n?.earningsDashboard ?? 'Earnings Dashboard'),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         elevation: 0,
@@ -133,10 +144,12 @@ class _EarningsDashboardScreenState
   }
 
   Widget _buildPeriodSelector() {
+    final l10n = AppLocalizations.of(context);
+    final periods = _getPeriods(l10n);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: _periods.map((period) {
+        children: periods.map((period) {
           final isSelected = _selectedPeriod == period;
           return GestureDetector(
             onTap: () => setState(() => _selectedPeriod = period),
@@ -184,6 +197,7 @@ class _EarningsDashboardScreenState
 
   Widget _buildTotalEarningsCard(
       double net, double gross, double fee) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(20.w),
@@ -209,7 +223,7 @@ class _EarningsDashboardScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Net Earnings',
+                l10n?.netEarnings ?? 'Net Earnings',
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: AppColors.white.withOpacity(0.8),
@@ -245,10 +259,10 @@ class _EarningsDashboardScreenState
           SizedBox(height: 16.h),
           Row(
             children: [
-              _earningChip('Gross', '₹${gross.toStringAsFixed(0)}',
+              _earningChip(l10n?.gross ?? 'Gross', '₹${gross.toStringAsFixed(0)}',
                   Icons.currency_rupee_rounded),
               SizedBox(width: 12.w),
-              _earningChip('Platform Fee',
+              _earningChip(l10n?.platformFee ?? 'Platform Fee',
                   '-₹${fee.toStringAsFixed(0)}', Icons.percent_rounded),
             ],
           ),
@@ -296,6 +310,7 @@ class _EarningsDashboardScreenState
 
   Widget _buildStatsGrid(
       int rides, int seats, int paid, double pending) {
+    final l10n = AppLocalizations.of(context);
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -304,13 +319,13 @@ class _EarningsDashboardScreenState
       mainAxisSpacing: 12.h,
       childAspectRatio: 1.6,
       children: [
-        _statCard('Total Rides', '$rides',
+        _statCard(l10n?.totalRides ?? 'Total Rides', '$rides',
             Icons.directions_car_rounded, AppColors.secondary),
-        _statCard('Seats Filled', '$seats',
+        _statCard(l10n?.seatsFilled ?? 'Seats Filled', '$seats',
             Icons.event_seat_rounded, AppColors.primary),
-        _statCard('Payments Done', '$paid',
+        _statCard(l10n?.paymentsDone ?? 'Payments Done', '$paid',
             Icons.check_circle_rounded, AppColors.success),
-        _statCard('Pending Amount', '₹${pending.toStringAsFixed(0)}',
+        _statCard(l10n?.pendingAmount ?? 'Pending Amount', '₹${pending.toStringAsFixed(0)}',
             Icons.pending_rounded, AppColors.warning),
       ],
     );
@@ -369,15 +384,17 @@ class _EarningsDashboardScreenState
   }
 
   Widget _buildEarningsChart(List<BookingModel> bookings) {
-    String title = 'Earnings 📊';
+    final l10n = AppLocalizations.of(context);
+    String title = l10n?.earnings ?? 'Earnings 📊';
     List<String> labels = [];
     Map<String, double> chartData = {};
     String currentHighlight = '';
 
     final now = DateTime.now();
+    final periods = _getPeriods(l10n);
 
-    if (_selectedPeriod == 'Today') {
-      title = 'Today\'s Activity 📊';
+    if (_selectedPeriod == periods[0]) {
+      title = '${l10n?.today ?? "Today"}\'s Activity 📊';
       labels = ['6AM', '12PM', '6PM', '12AM'];
       for (var l in labels) chartData[l] = 0;
       for (var b in bookings) {
@@ -395,8 +412,8 @@ class _EarningsDashboardScreenState
       else if (hour < 18) currentHighlight = '12PM';
       else currentHighlight = '6PM';
 
-    } else if (_selectedPeriod == 'This Week') {
-      title = 'Weekly Earnings 📊';
+    } else if (_selectedPeriod == periods[1]) {
+      title = l10n?.weeklyEarnings ?? 'Weekly Earnings 📊';
       labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       for (var l in labels) chartData[l] = 0;
       for (var b in bookings) {
@@ -405,8 +422,8 @@ class _EarningsDashboardScreenState
       }
       currentHighlight = labels[now.weekday - 1];
 
-    } else if (_selectedPeriod == 'This Month') {
-      title = 'Monthly Progress 📊';
+    } else if (_selectedPeriod == periods[2]) {
+      title = l10n?.monthlyProgress ?? 'Monthly Progress 📊';
       labels = ['W1', 'W2', 'W3', 'W4+'];
       for (var l in labels) chartData[l] = 0;
       for (var b in bookings) {
@@ -418,7 +435,7 @@ class _EarningsDashboardScreenState
       currentHighlight = week >= 4 ? 'W4+' : 'W$week';
 
     } else {
-      title = 'Recent Months 📊';
+      title = l10n?.recentMonths ?? 'Recent Months 📊';
       for (int i = 5; i >= 0; i--) {
         DateTime d = DateTime(now.year, now.month - i, 1);
         String m = _getMonthName(d.month);
@@ -532,6 +549,7 @@ class _EarningsDashboardScreenState
   }
 
   Widget _buildRecentEarnings(List<BookingModel> bookings) {
+    final l10n = AppLocalizations.of(context);
     if (bookings.isEmpty) {
       return Container(
         padding: EdgeInsets.all(24.w),
@@ -546,7 +564,7 @@ class _EarningsDashboardScreenState
                   size: 48.sp, color: AppColors.border),
               SizedBox(height: 12.h),
               Text(
-                'No earnings yet for $_selectedPeriod',
+                l10n?.noEarningsYet(_selectedPeriod) ?? 'No earnings yet for $_selectedPeriod',
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: AppColors.textSecondary,
@@ -581,7 +599,7 @@ class _EarningsDashboardScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Earnings',
+                l10n?.recentEarnings ?? 'Recent Earnings',
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.bold,
@@ -589,7 +607,7 @@ class _EarningsDashboardScreenState
                 ),
               ),
               Text(
-                '${sorted.length} rides',
+                '${sorted.length} ${l10n?.rides ?? "rides"}',
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: AppColors.textSecondary,
@@ -654,7 +672,7 @@ class _EarningsDashboardScreenState
                           children: [
                             Text(
                               booking.riderName.isEmpty
-                                  ? 'Rider'
+                                  ? (l10n?.rider ?? 'Rider')
                                   : booking.riderName,
                               style: TextStyle(
                                 fontSize: 11.sp,
@@ -667,7 +685,7 @@ class _EarningsDashboardScreenState
                                     color:
                                     AppColors.textSecondary)),
                             Text(
-                              '${booking.seatsBooked} seat(s)',
+                              '${booking.seatsBooked} ${l10n?.booked ?? "seat(s)"}',
                               style: TextStyle(
                                 fontSize: 11.sp,
                                 color: AppColors.textSecondary,
@@ -676,7 +694,7 @@ class _EarningsDashboardScreenState
                           ],
                         ),
                         Text(
-                          _formatDate(booking.createdAt),
+                          _formatDate(context, booking.createdAt),
                           style: TextStyle(
                             fontSize: 10.sp,
                             color: AppColors.textHint,
@@ -707,7 +725,7 @@ class _EarningsDashboardScreenState
                           BorderRadius.circular(6.r),
                         ),
                         child: Text(
-                          isPaid ? 'Paid' : 'Pending',
+                          isPaid ? (l10n?.paid ?? 'Paid') : (l10n?.pending ?? 'Pending'),
                           style: TextStyle(
                             fontSize: 10.sp,
                             fontWeight: FontWeight.bold,
@@ -728,12 +746,13 @@ class _EarningsDashboardScreenState
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final diff = now.difference(date);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inMinutes < 60) return l10n?.minAgo(diff.inMinutes) ?? '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return l10n?.hoursAgo(diff.inHours) ?? '${diff.inHours}h ago';
+    if (diff.inDays == 1) return l10n?.yesterday ?? 'Yesterday';
     return '${date.day}/${date.month}/${date.year}';
   }
 }

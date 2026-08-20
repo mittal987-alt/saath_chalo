@@ -767,7 +767,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Explore Services',
+            l10n?.exploreServices ?? 'Explore Services',
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
@@ -800,7 +800,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               _buildActionCard(
-                'Safety',
+                l10n?.safety ?? 'Safety',
                 Icons.shield_rounded,
                 AppColors.error,
                     () => Navigator.push(
@@ -810,7 +810,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               _buildActionCard(
-                'Chats',
+                l10n?.chats ?? 'Chats',
                 Icons.chat_rounded,
                 AppColors.success,
                     () => setState(() => _selectedIndex = 1),
@@ -873,6 +873,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMapPreview() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
       child: Column(
@@ -884,7 +885,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Text(
-                    'Live Ride Network',
+                    l10n?.liveRideNetwork ?? 'Live Ride Network',
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
@@ -982,6 +983,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRecentRides() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
       child: Column(
@@ -991,7 +993,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Rides',
+                l10n?.recentRides ?? 'Recent Rides',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
@@ -1004,7 +1006,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   MaterialPageRoute(builder: (_) => const RideHistoryScreen()),
                 ),
                 child: Text(
-                  'See All',
+                  l10n?.seeAll ?? 'See All',
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
@@ -1114,6 +1116,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStats() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 12.h),
       child: Container(
@@ -1133,17 +1136,17 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildStatItem('Eco Friendly', '🌱 100%', 'Zero Emission'),
+            _buildStatItem(l10n?.ecoFriendly ?? 'Eco Friendly', '🌱 100%', l10n?.zeroEmission ?? 'Zero Emission'),
             Container(
                 height: 30.h,
                 width: 1,
                 color: AppColors.textHint.withOpacity(0.2)),
-            _buildStatItem('Community', '👥 Trusted', 'Verified Peers'),
+            _buildStatItem(l10n?.community ?? 'Community', '👥 Trusted', l10n?.verifiedPeers ?? 'Verified Peers'),
             Container(
                 height: 30.h,
                 width: 1,
                 color: AppColors.textHint.withOpacity(0.2)),
-            _buildStatItem('Safety', '🛡️ 24/7', 'SOS & Support'),
+            _buildStatItem(l10n?.safety ?? 'Safety', '🛡️ 24/7', l10n?.sosAndSupport ?? 'SOS & Support'),
           ],
         ),
       ),
@@ -1183,6 +1186,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNav() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -1196,22 +1200,22 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, 'Home'),
-              _buildNavItem(1, Icons.chat_bubble_rounded,
-                  Icons.chat_bubble_outline_rounded, 'Chats',
-                  customIcon: _buildChatNavIcon),
-              _buildNavItem(2, Icons.smart_toy_rounded,
-                  Icons.smart_toy_outlined, 'AI Assistant'),
-              _buildNavItem(3, Icons.person_rounded,
-                  Icons.person_outline_rounded, 'Profile'),
-              _buildNavItem(4, Icons.car_rental_rounded,
-                  Icons.car_rental_outlined, 'Requests'),
-              _buildNavItem(5, Icons.bookmark_rounded,
-                  Icons.bookmark_outline_rounded, 'Bookings'),
+              Expanded(child: _buildNavItem(0, Icons.home_rounded, Icons.home_outlined, l10n?.home ?? 'Home')),
+              Expanded(child: _buildNavItem(1, Icons.chat_bubble_rounded,
+                  Icons.chat_bubble_outline_rounded, l10n?.chats ?? 'Chats',
+                  customIcon: _buildChatNavIcon)),
+              Expanded(child: _buildNavItem(2, Icons.smart_toy_rounded,
+                  Icons.smart_toy_outlined, l10n?.aiAssistant ?? 'AI Assistant')),
+              Expanded(child: _buildNavItem(3, Icons.person_rounded,
+                  Icons.person_outline_rounded, l10n?.profile ?? 'Profile')),
+              Expanded(child: _buildNavItem(4, Icons.car_rental_rounded,
+                  Icons.car_rental_outlined, l10n?.requests ?? 'Requests')),
+              Expanded(child: _buildNavItem(5, Icons.bookmark_rounded,
+                  Icons.bookmark_outline_rounded, l10n?.bookings ?? 'Bookings')),
             ],
           ),
         ),
@@ -1230,7 +1234,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () => setState(() => _selectedIndex = index),
       borderRadius: BorderRadius.circular(12.r),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        padding: EdgeInsets.symmetric(vertical: 6.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1239,15 +1243,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 : Icon(
               isSelected ? activeIcon : inactiveIcon,
               color: color,
-              size: 22.sp,
+              size: 20.sp,
             ),
             SizedBox(height: 4.h),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.sp,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: color,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 9.sp,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: color,
+                ),
               ),
             ),
           ],

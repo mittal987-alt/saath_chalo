@@ -11,10 +11,22 @@
   "profile": "Profile",
   "requests": "Requests",
   "home": "Home",
+  "aiAssistant": "AI Assistant",
+  "bookings": "Bookings",
   "ai": "AI",
   "whereToGo": "Where do you want to go?",
   "exploreServices": "Explore Services",
   "liveRideNetwork": "Live Ride Network",
+  "recentRides": "Recent Rides",
+  "ecoFriendly": "Eco Friendly",
+  "zeroEmission": "Zero Emission",
+  "community": "Community",
+  "verifiedPeers": "Verified Peers",
+  "safety": "Safety",
+  "sosAndSupport": "SOS & Support",
+  "welcomeAiMessage": "🙏 Namaste! I am SaathChalo AI!\n\nI can help you with:\n\n🗺️ Best carpool routes\n💰 Fare calculations\n🚦 Best travel times\n🛡️ Safety tips\n💬 Carpooling advice\n\nHow can I help you today?",
+  "poweredBy": "Powered by Mistral & Tavily",
+  "newChat": "New Chat",
   "myOfferedRides": "My Offered Rides",
   "yourImpact": "Your Impact 🌱",
   "moneySaved": "Money Saved",
@@ -106,5 +118,201 @@
   "today": "Today",
   "thisWeek": "This Week",
   "thisMonth": "This Month",
-  "allTime": "All Time"
+  "allTime": "All Time",
+  "messages": "Messages",
+  "pleaseLoginMessages": "Please login to view messages",
+  "tapToStartConversation": "Tap to start conversation",
+  "rider": "Rider",
+  "driver": "Driver",
+  "noMessagesYet": "No messages yet",
+  "conversationsWillAppearHere": "Your ride conversations\nwill appear here.",
+  "quickReplyOnMyWay": "👍 On my way!",
+  "quickReply5Mins": "⏰ 5 minutes away",
+  "quickReplyAtPickup": "📍 I am at the pickup point",
+  "quickReplyArrived": "🚗 I have arrived",
+  "quickReplyGotIt": "✅ Got it!",
+  "quickReplyThankYou": "🙏 Thank you",
+  "quickReplyWhereAreYou": "❓ Where are you?",
+  "quickReplyPleaseWait": "⌛ Please wait",
+  "sayHiToYour": "Say hi to your {role} 👋",
+  "@sayHiToYour": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "sayHello": "Say Hello!",
+  "messageHint": "Message...",
+  "rideDetails": "Ride Details",
+  "activeRideStatus": "Active Ride 🟢",
+  "cancelledStatus": "Cancelled ❌",
+  "fullyBookedStatus": "Fully Booked 🎫",
+  "completedStatus": "Completed ✅",
+  "route": "Route",
+  "passengers": "Passengers",
+  "chatWithPassengers": "Chat with Passengers",
+  "noPassengersYet": "No passengers yet.\nShare your ride to get passengers!",
+  "viewPendingRequests": "View {count} Pending Request{s} 🔔",
+  "@viewPendingRequests": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "s": { "type": "String" }
+    }
+  },
+  "viewAllRequests": "View All Requests",
+  "shareRideNavigate": "Share Ride & Navigate 🗺️",
+  "openActiveRideMap": "Open Active Ride Map",
+  "cancelRide": "Cancel Ride",
+  "cancelRideConfirmTitle": "Cancel Ride?",
+  "cancelRideConfirmContent": "This will cancel your ride and notify all passengers.",
+  "no": "No",
+  "yesCancel": "Yes, Cancel",
+  "activeRideInProgress": "Active Ride In Progress",
+  "ridePublished": "Ride Published! 🎉",
+  "ridePublishedSubtitle": "Your ride is now live on SaathChalo. Passengers can start requesting seats!",
+  "awesome": "Awesome!",
+  "fillAllFields": "Please fill all fields!",
+  "findARide": "Find a Ride",
+  "enterFromTo": "Please enter from & to location",
+  "findPerfectCarpool": "Find your perfect carpool",
+  "enterLocationsToSearch": "Enter your pickup and drop-off locations above to search for available rides near you.",
+  "noRidesAvailable": "No rides available right now!",
+  "tryDifferentLocations": "Try different locations or check back later.",
+  "noMatchingRides": "No matching rides for this route!",
+  "ridesFound": "{count} Rides Found 🎉",
+  "@ridesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "requestSeats": "Request {count} Seat{s}",
+  "@requestSeats": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "s": { "type": "String" }
+    }
+  },
+  "requestSent": "Request Sent! ⏳",
+  "waitingForDriver": "Waiting for {name} to accept.\nYou'll get a notification once confirmed!",
+  "@waitingForDriver": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "okGotIt": "OK, Got It!",
+  "music": "Music",
+  "noMusic": "No Music",
+  "pets": "Pets",
+  "noPets": "No Pets",
+  "smoking": "Smoking",
+  "noSmoking": "No Smoking",
+  "ac": "AC",
+  "noAc": "No AC",
+  "routeDetails": "Route Details",
+  "dateTime": "Date & Time",
+  "vehiclePrice": "Vehicle & Price",
+  "preferences": "Preferences",
+  "startingLocation": "Starting location",
+  "destination": "Destination",
+  "vehicleDetails": "Vehicle Details",
+  "vehicleHint": "e.g. Swift Dzire • DL 4C 1234",
+  "amountHint": "₹ Amount",
+  "womenOnlyRide": "Women Only Ride 👩",
+  "womenOnlySubtitle": "Only women can request this ride",
+  "paymentMethodLabel": "Payment Method 💰",
+  "paymentSubtitle": "How passengers should pay",
+  "musicAllowedLabel": "Music Allowed 🎵",
+  "musicSubtitle": "Can passengers play music?",
+  "petsAllowedLabel": "Pets Allowed 🐾",
+  "petsSubtitle": "Can passengers bring pets?",
+  "smokingAllowedLabel": "Smoking Allowed 🚬",
+  "smokingSubtitle": "Is smoking allowed in the car?",
+  "acPreferredLabel": "AC Preferred ❄️",
+  "acSubtitle": "Will the AC be switched on?",
+  "publishRide": "Publish Ride",
+  "publishing": "Publishing...",
+  "chatWith": "Chat with {name} {emoji}",
+  "@chatWith": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "emoji": { "type": "String" }
+    }
+  },
+  "yourDriver": "Your Driver",
+  "live": "LIVE",
+  "waitingForLocation": "Waiting for live location",
+  "startingTracking": "Starting live tracking...",
+  "liveTrackingActive": "Live tracking active",
+  "youDriver": "You (Driver)",
+  "yourDriver": "Your Driver",
+  "headingToPickup": "I'm Heading to Pickup Point",
+  "startRide": "Start Ride",
+  "endRide": "End Ride",
+  "markAsPaid": "Mark as Paid (Cash)",
+  "paymentMarkedPaid": "Payment marked as paid!",
+  "yourRideOtp": "Your Ride OTP",
+  "shareOtpWithDriver": "Share this with the driver to start the ride",
+  "invalidOtp": "Invalid OTP!",
+  "verifyAndStart": "Verify & Start",
+  "enterPassengerOtp": "Enter Passenger OTP",
+  "fourDigitOtp": "4-digit OTP",
+  "endRideConfirmTitle": "End Ride?",
+  "endRideConfirmContent": "Are you sure you want to end the ride to {destination}?",
+  "@endRideConfirmContent": {
+    "placeholders": {
+      "destination": { "type": "String" }
+    }
+  },
+  "yesEndRide": "Yes, End Ride",
+  "emergencySos": "Emergency SOS!",
+  "sosConfirmContent": "Send emergency alert with your live location to your emergency contacts?",
+  "sosAlertSent": "🆘 SOS Alert Sent!",
+  "driverDashboard": "Driver Dashboard",
+  "passengerMode": "Passenger Mode",
+  "active": "Active",
+  "noActiveRides": "No active rides currently.",
+  "riderLabel": "Rider: {name}",
+  "@riderLabel": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "earningsDashboard": "Earnings Dashboard",
+  "gross": "Gross",
+  "seatsFilled": "Seats Filled",
+  "paymentsDone": "Payments Done",
+  "pendingAmount": "Pending Amount",
+  "monthlyProgress": "Monthly Progress 📊",
+  "recentMonths": "Recent Months 📊",
+  "noEarningsYet": "No earnings yet for {period}",
+  "@noEarningsYet": {
+    "placeholders": {
+      "period": { "type": "String" }
+    }
+  },
+  "minAgo": "{count}m ago",
+  "@minAgo": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "hoursAgo": "{count}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "yesterday": "Yesterday",
+  "requestsTab": "Requests",
+  "activeTab": "Active",
+  "chatsTab": "Chats",
+  "earningsTab": "Earnings",
+  "profileTab": "Profile",
+  "offerRideButton": "Offer Ride",
+  "passengerButton": "Passenger"
 }

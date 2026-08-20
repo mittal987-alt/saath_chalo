@@ -66,7 +66,10 @@ ${webContext.isEmpty ? 'No real-time web data available for this query.' : webCo
 - ALWAYS answer in the same language as the user (Hindi, English, etc.).
 - Be concise, professional, and friendly.
 - Use the APP CONTEXT for any questions about the user's specific rides, wallet balance, payments, reports, safety settings, or history.
-- If the user asks about available rides, check the "Global Rides" section in the APP CONTEXT.
+- If the user wants to FIND or BOOK a ride:
+    1. Search the "Global Active Rides" in the APP CONTEXT for matches (source/destination).
+    2. If found, list the options (driver name, price, time).
+    3. If the user confirms they want to book a specific ride, output a special hidden tag at the end of your response: [ACTION:BOOK_RIDE:rideId:seats]. Replace `rideId` with the actual ride ID and `seats` with the number of seats requested (default 1).
 - Use the WEB CONTEXT for real-time information like traffic, weather, or location-specific details.
 - If data is missing from both contexts, politely inform the user instead of hallucinating.
 - Focus on carpooling, safety, and cost-efficiency.
@@ -260,8 +263,8 @@ ${webContext.isEmpty ? 'No real-time web data available for this query.' : webCo
     ).join('\n');
 
     final globalSummary = (globalRides ?? []).map((r) => 
-      '- Available: ${r['from']} to ${r['to']} (₹${r['pricePerSeat']}/seat)'
-    ).take(10).join('\n');
+      '- RideID: ${r['rideId']} | From: ${r['from']} to ${r['to']} | Price: ₹${r['pricePerSeat']}/seat | Driver: ${r['driverName']} | Date: ${r['rideDate']}'
+    ).take(15).join('\n');
 
     final safetyInfo = safetySettings != null ? '''
 - SOS Enabled: ${safetySettings['sosEnabled'] ?? true}

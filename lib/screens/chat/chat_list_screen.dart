@@ -3,10 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:lottie/lottie.dart';
 import '../../core/constants/app_colors.dart';
 import '../../widgets/shimmer_loading.dart';
-import 'chat_screen.dart';
+import '../../models/booking_model.dart';
+import '../../l10n/app_localizations.dart';
+import 'ride_chat_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
   const ChatListScreen({super.key});
@@ -15,6 +16,14 @@ class ChatListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+        body: Center(child: Text(l10n?.pleaseLoginMessages ?? 'Please login to view messages')),
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -30,7 +39,7 @@ class ChatListScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
               title: Text(
-                'Messages',
+                l10n?.messages ?? 'Messages',
                 style: TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w800,
@@ -60,18 +69,6 @@ class ChatListScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Positioned(
-                      bottom: -25,
-                      right: 60.w,
-                      child: Container(
-                        width: 70.w,
-                        height: 70.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.04),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -81,132 +78,152 @@ class ChatListScreen extends StatelessWidget {
           // ── Content ─────────────────────────────────────
           SliverToBoxAdapter(
             child: StreamBuilder<QuerySnapshot>(
+              // Query bookings where user is either rider or driver and status is active/accepted
               stream: FirebaseFirestore.instance
-                  .collection('chats')
+                  .collection('bookings')
+                  .where(Filter.or(
+                    Filter('riderUid', isEqualTo: user.uid),
+                    Filter('driverUid', isEqualTo: user.uid),
+                  ))
                   .snapshots(),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.w),
+                      child: Text('Error loading messages: ${snapshot.error}'),
+                    ),
+                  );
+                }
+
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Padding(
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
-                      children: List.generate(4, (i) => Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: ShimmerLoading(width: double.infinity, height: 80.h, borderRadius: 20.r),
-                      )),
-                    ),
-                  );
+                  return _buildShimmer();
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return SizedBox(
-                    height: 500.h,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(20.w),
-                          decoration: BoxDecoration(
-                            color: AppColors.background.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.chat_bubble_outline_rounded,
-                            size: 80.sp,
-                            color: AppColors.textSecondary.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        SizedBox(height: 24.h),
-                        Text(
-                          'No messages yet',
-                          style: TextStyle(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          'Once you book or offer a ride,\nyour chats will appear here.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13.sp,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
+                // Filter out pending or cancelled bookings if necessary
+                final bookings = snapshot.data?.docs.where((doc) {
+                  final status = doc.get('status') as String? ?? '';
+                  return status != 'pending' && status != 'cancelled' && status != 'rejected';
+                }).toList() ?? [];
+
+                if (bookings.isEmpty) {
+                  return _buildEmptyState(context, isDark);
                 }
 
-                final chatDocs = snapshot.data!.docs;
+                // Sort bookings by creation or ride date
+                bookings.sort((a, b) {
+                  final aTime = (a.data() as Map<String, dynamic>)['createdAt'] as dynamic;
+                  final bTime = (b.data() as Map<String, dynamic>)['createdAt'] as dynamic;
+                  if (aTime is Timestamp && bTime is Timestamp) {
+                    return bTime.compareTo(aTime);
+                  }
+                  return 0;
+                });
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
-                      child: Text(
-                        '${chatDocs.length} Conversation${chatDocs.length > 1 ? "s" : ""}',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 100.h),
-                      itemCount: chatDocs.length,
-                      itemBuilder: (context, index) {
-                        final chatData = chatDocs[index].data() as Map<String, dynamic>? ?? {};
-                        final rideId = chatDocs[index].id;
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 100.h),
+                  itemCount: bookings.length,
+                  itemBuilder: (context, index) {
+                    final bookingData = bookings[index].data() as Map<String, dynamic>;
+                    final booking = BookingModel.fromMap(bookingData);
+                    final isDriver = booking.driverUid == user.uid;
+                    final otherName = isDriver ? booking.riderName : booking.driverName;
+                    
+                    return StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('ride_chats')
+                          .doc(booking.bookingId)
+                          .snapshots(),
+                      builder: (context, chatSnap) {
+                        final chatData = chatSnap.data?.data() as Map<String, dynamic>?;
+                        final lastMsg = chatData?['lastMessage'] ?? l10n?.tapToStartConversation ?? 'Tap to start conversation';
+                        final lastTime = chatData?['lastMessageTime'] as Timestamp?;
+                        final isMyMessage = chatData?['lastSenderId'] == user.uid;
 
-                        return StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('chats')
-                              .doc(rideId)
-                              .collection('messages')
-                              .orderBy('timestamp', descending: true)
-                              .limit(1)
-                              .snapshots(),
-                          builder: (context, msgSnapshot) {
-                            String lastMsg = 'No messages yet';
-                            String time = '';
-
-                            if (msgSnapshot.hasData && msgSnapshot.data!.docs.isNotEmpty) {
-                              final msgData = msgSnapshot.data!.docs.first.data() as Map<String, dynamic>? ?? {};
-                              lastMsg = msgData['text'] ?? '';
-                              final ts = msgData['timestamp'] as Timestamp?;
-                              if (ts != null) {
-                                final date = ts.toDate();
-                                final hour = date.hour.toString().padLeft(2, '0');
-                                final min = date.minute.toString().padLeft(2, '0');
-                                time = '$hour:$min';
-                              }
-                            }
-
-                            return _buildChatTile(
-                              context: context,
-                              isDark: isDark,
-                              rideId: rideId,
-                              name: 'Ride Chat: ${rideId.substring(0, 6).toUpperCase()}',
-                              lastMsg: lastMsg,
-                              time: time,
-                              isMyMessage: msgSnapshot.hasData &&
-                                  msgSnapshot.data!.docs.isNotEmpty &&
-                                  ((msgSnapshot.data!.docs.first.data() as Map<String, dynamic>?)?['senderId'] == user?.uid),
-                            );
-                          },
+                        return _buildChatTile(
+                          context: context,
+                          isDark: isDark,
+                          booking: booking,
+                          name: otherName.isEmpty ? (isDriver ? (l10n?.rider ?? 'Rider') : (l10n?.driver ?? 'Driver')) : otherName,
+                          lastMsg: lastMsg,
+                          time: lastTime != null ? _formatTime(lastTime) : '',
+                          isMyMessage: isMyMessage,
+                          isDriver: isDriver,
                         );
                       },
-                    ),
-                  ],
+                    );
+                  },
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShimmer() {
+    return Padding(
+      padding: EdgeInsets.all(16.w),
+      child: Column(
+        children: List.generate(4, (i) => Padding(
+          padding: EdgeInsets.only(bottom: 12.h),
+          child: ShimmerLoading(width: double.infinity, height: 80.h, borderRadius: 20.r),
+        )),
+      ),
+    );
+  }
+
+  String _formatTime(Timestamp ts) {
+    final date = ts.toDate();
+    final now = DateTime.now();
+    if (date.day == now.day && date.month == now.month && date.year == now.year) {
+      final hour = date.hour.toString().padLeft(2, '0');
+      final min = date.minute.toString().padLeft(2, '0');
+      return '$hour:$min';
+    }
+    return '${date.day}/${date.month}';
+  }
+
+  Widget _buildEmptyState(BuildContext context, bool isDark) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      height: 400.h,
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(20.w),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 60.sp,
+              color: AppColors.primary.withOpacity(0.5),
+            ),
+          ),
+          SizedBox(height: 24.h),
+          Text(
+            l10n?.noMessagesYet ?? 'No messages yet',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w700,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            l10n?.conversationsWillAppearHere ?? 'Your ride conversations\nwill appear here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              height: 1.5,
             ),
           ),
         ],
@@ -217,11 +234,12 @@ class ChatListScreen extends StatelessWidget {
   Widget _buildChatTile({
     required BuildContext context,
     required bool isDark,
-    required String rideId,
+    required BookingModel booking,
     required String name,
     required String lastMsg,
     required String time,
     required bool isMyMessage,
+    required bool isDriver,
   }) {
     return GestureDetector(
       onTap: () {
@@ -229,12 +247,12 @@ class ChatListScreen extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ChatScreen(rideId: rideId, otherUserName: name),
+            builder: (_) => RideChatScreen(booking: booking, isDriver: isDriver),
           ),
         );
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 10.h),
+        margin: EdgeInsets.only(bottom: 12.h),
         padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCardBg : AppColors.white,
@@ -253,29 +271,49 @@ class ChatListScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ── Avatar with gradient ring ─────────────────
-            Container(
-              padding: EdgeInsets.all(2.w),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0F9D58), Color(0xFF34A853)],
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 26.r,
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  child: Icon(
+                    Icons.person_rounded,
+                    color: AppColors.primary,
+                    size: 28.sp,
+                  ),
                 ),
-              ),
-              child: CircleAvatar(
-                radius: 24.r,
-                backgroundColor: isDark ? AppColors.darkSurface : AppColors.background,
-                child: Icon(
-                  Icons.directions_car_rounded,
-                  color: AppColors.primary,
-                  size: 22.sp,
+                // Unread indicator badge
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('ride_chats')
+                      .doc(booking.bookingId)
+                      .collection('messages')
+                      .where('senderId', isNotEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                      .where('isRead', isEqualTo: false)
+                      .snapshots(),
+                  builder: (context, snap) {
+                    final count = snap.data?.docs.length ?? 0;
+                    if (count == 0) return const SizedBox.shrink();
+                    return Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: EdgeInsets.all(4.w),
+                        decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                        constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.w),
+                        child: Center(
+                          child: Text(
+                            count > 9 ? '9+' : '$count',
+                            style: TextStyle(color: Colors.white, fontSize: 8.sp, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              ),
+              ],
             ),
-
             SizedBox(width: 12.w),
-
-            // ── Chat Info ────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,28 +321,21 @@ class ChatListScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-                          ),
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                         ),
                       ),
-                      SizedBox(width: 8.w),
-                      if (time.isNotEmpty)
-                        Text(
-                          time,
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
                         ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 4.h),
@@ -313,11 +344,7 @@ class ChatListScreen extends StatelessWidget {
                       if (isMyMessage)
                         Padding(
                           padding: EdgeInsets.only(right: 4.w),
-                          child: Icon(
-                            Icons.done_all_rounded,
-                            size: 14.sp,
-                            color: AppColors.primary,
-                          ),
+                          child: Icon(Icons.done_all_rounded, size: 14.sp, color: AppColors.primary),
                         ),
                       Expanded(
                         child: Text(
@@ -327,21 +354,24 @@ class ChatListScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12.sp,
                             color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
-                            fontStyle: lastMsg == 'No messages yet' ? FontStyle.italic : FontStyle.normal,
                           ),
                         ),
                       ),
                     ],
                   ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    '${booking.from} → ${booking.to}',
+                    style: TextStyle(
+                      fontSize: 9.sp,
+                      color: AppColors.textHint,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
-            ),
-
-            SizedBox(width: 8.w),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 12.sp,
-              color: isDark ? AppColors.darkTextSecondary : AppColors.textHint,
             ),
           ],
         ),

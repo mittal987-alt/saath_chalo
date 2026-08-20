@@ -8,6 +8,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/ride_model.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
+import '../../l10n/app_localizations.dart';
 import 'driver_requests_screen.dart';
 import 'active_ride_screen.dart';
 
@@ -56,6 +57,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
   }
 
   void _offerRide() async {
+    final l10n = AppLocalizations.of(context);
     if (_fromController.text.isEmpty ||
         _toController.text.isEmpty ||
         _priceController.text.isEmpty ||
@@ -63,7 +65,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
       HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please fill all fields!'),
+          content: Text(l10n?.fillAllFields ?? 'Please fill all fields!'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
@@ -110,6 +112,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
 
       HapticFeedback.heavyImpact();
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -137,12 +140,12 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                     ),
                   ),
                 Text(
-                  'Ride Published! 🎉',
+                  l10n?.ridePublished ?? 'Ride Published! 🎉',
                   style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.w800, letterSpacing: -0.5),
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'Your ride is now live on SaathChalo. Passengers can start requesting seats!',
+                  l10n?.ridePublishedSubtitle ?? 'Your ride is now live on SaathChalo. Passengers can start requesting seats!',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13.sp, color: AppColors.textSecondary, height: 1.5),
                 ),
@@ -159,7 +162,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                     child: ElevatedButton(
                       onPressed: () { Navigator.pop(context); Navigator.pop(context); },
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r))),
-                      child: Text('Awesome!', style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w700)),
+                      child: Text(l10n?.awesome ?? 'Awesome!', style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w700)),
                     ),
                   ),
                 ),
@@ -251,6 +254,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       body: CustomScrollView(
@@ -263,7 +267,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
             backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
-              title: Text('Offer a Ride', style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
+              title: Text(l10n?.offerRide ?? 'Offer a Ride', style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -292,15 +296,15 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSectionCard(
-                    title: '📍 Route Details',
+                    title: '📍 ${l10n?.routeDetails ?? 'Route Details'}',
                     child: Column(
                       children: [
-                        _buildLabel('From'),
+                        _buildLabel(l10n?.from ?? 'From'),
                         SizedBox(height: 8.h),
                         TextFormField(
                           controller: _fromController,
                           decoration: InputDecoration(
-                            hintText: 'Starting location',
+                            hintText: l10n?.startingLocation ?? 'Starting location',
                             prefixIcon: Icon(Icons.circle,
                                 color: AppColors.primary, size: 12.sp),
                             filled: true,
@@ -312,12 +316,12 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                           ),
                         ),
                         SizedBox(height: 12.h),
-                        _buildLabel('To'),
+                        _buildLabel(l10n?.to ?? 'To'),
                         SizedBox(height: 8.h),
                         TextFormField(
                           controller: _toController,
                           decoration: InputDecoration(
-                            hintText: 'Destination',
+                            hintText: l10n?.destination ?? 'Destination',
                             prefixIcon: Icon(Icons.location_on,
                                 color: AppColors.secondary, size: 20.sp),
                             filled: true,
@@ -333,7 +337,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                   ),
                   SizedBox(height: 16.h),
                   _buildSectionCard(
-                    title: '🕐 Date & Time',
+                    title: '🕐 ${l10n?.dateTime ?? 'Date & Time'}',
                     child: Row(
                       children: [
                         Expanded(
@@ -411,15 +415,15 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                   ),
                   SizedBox(height: 16.h),
                   _buildSectionCard(
-                    title: '🚗 Vehicle & Price',
+                    title: '🚗 ${l10n?.vehiclePrice ?? 'Vehicle & Price'}',
                     child: Column(
                       children: [
-                        _buildLabel('Vehicle Details'),
+                        _buildLabel(l10n?.vehicleDetails ?? 'Vehicle Details'),
                         SizedBox(height: 8.h),
                         TextFormField(
                           controller: _vehicleController,
                           decoration: InputDecoration(
-                            hintText: 'e.g. Swift Dzire • DL 4C 1234',
+                            hintText: l10n?.vehicleHint ?? 'e.g. Swift Dzire • DL 4C 1234',
                             prefixIcon:
                                 const Icon(Icons.directions_car_rounded),
                             filled: true,
@@ -437,13 +441,13 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel('Price per Seat'),
+                                  _buildLabel(l10n?.pricePerSeat ?? 'Price per Seat'),
                                   SizedBox(height: 8.h),
                                   TextFormField(
                                     controller: _priceController,
                                     keyboardType: TextInputType.number,
                                     decoration: InputDecoration(
-                                      hintText: '₹ Amount',
+                                      hintText: l10n?.amountHint ?? '₹ Amount',
                                       prefixIcon: const Icon(
                                           Icons.currency_rupee_rounded),
                                       filled: true,
@@ -462,7 +466,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel('Available Seats'),
+                                  _buildLabel(l10n?.availableSeats ?? 'Available Seats'),
                                   SizedBox(height: 8.h),
                                   Container(
                                     padding: EdgeInsets.symmetric(
@@ -512,12 +516,12 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                   ),
                   SizedBox(height: 16.h),
                   _buildSectionCard(
-                    title: '⚙️ Preferences',
+                    title: '⚙️ ${l10n?.preferences ?? 'Preferences'}',
                     child: Column(
                       children: [
                         _buildPreferenceToggle(
-                          title: 'Women Only Ride 👩',
-                          subtitle: 'Only women can request this ride',
+                          title: l10n?.womenOnlyRide ?? 'Women Only Ride 👩',
+                          subtitle: l10n?.womenOnlySubtitle ?? 'Only women can request this ride',
                           value: _womenOnly,
                           onChanged: (val) => setState(() => _womenOnly = val),
                         ),
@@ -531,8 +535,8 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Payment Method 💰', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                                    Text('How passengers should pay', style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary)),
+                                    Text(l10n?.paymentMethodLabel ?? 'Payment Method 💰', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                                    Text(l10n?.paymentSubtitle ?? 'How passengers should pay', style: TextStyle(fontSize: 11.sp, color: AppColors.textSecondary)),
                                   ],
                                 ),
                               ),
@@ -562,29 +566,29 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                         ),
                         const Divider(),
                         _buildPreferenceToggle(
-                          title: 'Music Allowed 🎵',
-                          subtitle: 'Can passengers play music?',
+                          title: l10n?.musicAllowedLabel ?? 'Music Allowed 🎵',
+                          subtitle: l10n?.musicSubtitle ?? 'Can passengers play music?',
                           value: _musicAllowed,
                           onChanged: (val) =>
                               setState(() => _musicAllowed = val),
                         ),
                         _buildPreferenceToggle(
-                          title: 'Pets Allowed 🐾',
-                          subtitle: 'Can passengers bring pets?',
+                          title: l10n?.petsAllowedLabel ?? 'Pets Allowed 🐾',
+                          subtitle: l10n?.petsSubtitle ?? 'Can passengers bring pets?',
                           value: _petsAllowed,
                           onChanged: (val) =>
                               setState(() => _petsAllowed = val),
                         ),
                         _buildPreferenceToggle(
-                          title: 'Smoking Allowed 🚬',
-                          subtitle: 'Is smoking allowed in the car?',
+                          title: l10n?.smokingAllowedLabel ?? 'Smoking Allowed 🚬',
+                          subtitle: l10n?.smokingSubtitle ?? 'Is smoking allowed in the car?',
                           value: _smokingAllowed,
                           onChanged: (val) =>
                               setState(() => _smokingAllowed = val),
                         ),
                         _buildPreferenceToggle(
-                          title: 'AC Preferred ❄️',
-                          subtitle: 'Will the AC be switched on?',
+                          title: l10n?.acPreferredLabel ?? 'AC Preferred ❄️',
+                          subtitle: l10n?.acSubtitle ?? 'Will the AC be switched on?',
                           value: _acPreferred,
                           onChanged: (val) =>
                               setState(() => _acPreferred = val),
@@ -623,7 +627,7 @@ class _OfferRideScreenState extends State<OfferRideScreen> {
                             ? SizedBox(width: 20.w, height: 20.w, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                             : const Icon(Icons.rocket_launch_rounded, color: Colors.white),
                         label: Text(
-                          _isLoading ? 'Publishing...' : 'Publish Ride',
+                          _isLoading ? (l10n?.publishing ?? 'Publishing...') : (l10n?.publishRide ?? 'Publish Ride'),
                           style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700),
                         ),
                       ),

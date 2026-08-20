@@ -9,6 +9,7 @@ import '../../core/constants/app_colors.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../l10n/app_localizations.dart';
 
 class FindRideScreen extends StatefulWidget {
   const FindRideScreen({super.key});
@@ -25,11 +26,12 @@ class _FindRideScreenState extends State<FindRideScreen> {
   final User? _user = FirebaseAuth.instance.currentUser;
 
   void _searchRides() {
+    final l10n = AppLocalizations.of(context);
     if (_fromController.text.isEmpty || _toController.text.isEmpty) {
       HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please enter from & to location'),
+          content: Text(l10n?.enterFromTo ?? 'Please enter from & to location'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.error,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
@@ -52,6 +54,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       body: CustomScrollView(
@@ -66,7 +69,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
               title: Text(
-                'Find a Ride',
+                l10n?.findARide ?? 'Find a Ride',
                 style: TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w800,
@@ -104,6 +107,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
   }
 
   Widget _buildSearchCard(bool isDark) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: EdgeInsets.all(16.w),
       padding: EdgeInsets.all(20.w),
@@ -126,7 +130,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // From field
-          _buildSearchFieldLabel('From', Icons.radio_button_checked, AppColors.primary, isDark),
+          _buildSearchFieldLabel(l10n?.from ?? 'From', Icons.radio_button_checked, AppColors.primary, isDark),
           SizedBox(height: 8.h),
           TextFormField(
             controller: _fromController,
@@ -159,7 +163,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
           ),
 
           // To field
-          _buildSearchFieldLabel('To', Icons.location_on_rounded, AppColors.error, isDark),
+          _buildSearchFieldLabel(l10n?.to ?? 'To', Icons.location_on_rounded, AppColors.error, isDark),
           SizedBox(height: 8.h),
           TextFormField(
             controller: _toController,
@@ -193,7 +197,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
                 ),
                 icon: const Icon(Icons.search_rounded, color: Colors.white),
-                label: Text('Search Rides', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
+                label: Text(l10n?.searchRides ?? 'Search Rides', style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
               ),
             ),
           ),
@@ -242,6 +246,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
   }
 
   Widget _buildIdleState(bool isDark) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
       child: Column(
@@ -264,7 +269,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
             ),
           ),
           Text(
-            'Find your perfect carpool',
+            l10n?.findPerfectCarpool ?? 'Find your perfect carpool',
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w700,
@@ -273,7 +278,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            'Enter your pickup and drop-off locations above to search for available rides near you.',
+            l10n?.enterLocationsToSearch ?? 'Enter your pickup and drop-off locations above to search for available rides near you.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13.sp,
@@ -287,6 +292,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
   }
 
   Widget _buildLiveRideResults(bool isDark) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: StreamBuilder<QuerySnapshot>(
@@ -330,10 +336,10 @@ class _FindRideScreenState extends State<FindRideScreen> {
                       ),
                     ),
                   ),
-                  Text('No rides available right now!',
+                  Text(l10n?.noRidesAvailable ?? 'No rides available right now!',
                       style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary)),
                   SizedBox(height: 6.h),
-                  Text('Try different locations or check back later.', style: TextStyle(fontSize: 12.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
+                  Text(l10n?.tryDifferentLocations ?? 'Try different locations or check back later.', style: TextStyle(fontSize: 12.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
                 ],
               ),
             );
@@ -361,12 +367,12 @@ class _FindRideScreenState extends State<FindRideScreen> {
                   Icon(Icons.route_rounded, size: 56.sp, color: AppColors.border),
                   SizedBox(height: 12.h),
                   Text(
-                    'No matching rides for this route!',
+                    l10n?.noMatchingRides ?? 'No matching rides for this route!',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600, color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary),
                   ),
                   SizedBox(height: 6.h),
-                  Text('Try different locations.', style: TextStyle(fontSize: 12.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
+                  Text(l10n?.tryDifferentLocations ?? 'Try different locations.', style: TextStyle(fontSize: 12.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary)),
                 ],
               ),
             );
@@ -386,7 +392,7 @@ class _FindRideScreenState extends State<FindRideScreen> {
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
-                        '${docs.length} Rides Found 🎉',
+                        l10n?.ridesFound(docs.length) ?? '${docs.length} Rides Found 🎉',
                         style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w700, color: AppColors.primary),
                       ),
                     ),

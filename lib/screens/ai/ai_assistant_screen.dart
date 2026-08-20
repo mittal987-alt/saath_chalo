@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
 import '../../services/ai_assistant_service.dart';
+import '../../services/firebase_services.dart';
+import '../../models/booking_model.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -26,9 +30,63 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _addWelcomeMessage();
   }
 
+  Future<String> _handleAiBooking(String text) async {
+    try {
+      final regExp = RegExp(r'\[ACTION:BOOK_RIDE:(.*?):(.*?)\]');
+      final match = regExp.firstMatch(text);
+      if (match == null) return "❌ I couldn't process the booking details.";
+
+      final rideId = match.group(1);
+      final seatsStr = match.group(2);
+      final seats = int.tryParse(seatsStr ?? '1') ?? 1;
+
+      if (rideId == null || rideId.isEmpty) return "❌ Invalid Ride ID.";
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return "❌ You must be logged in to book a ride.";
+
+      final fb = FirebaseService();
+      final ride = await fb.getRide(rideId);
+      if (ride == null) return "❌ The ride is no longer available.";
+
+      if (ride.availableSeats < seats) {
+        return "❌ Sorry, only ${ride.availableSeats} seats are available.";
+      }
+
+      final bookingId = const Uuid().v4();
+      final userModel = await fb.getUser(user.uid);
+
+      final booking = BookingModel(
+        bookingId: bookingId,
+        rideId: rideId,
+        riderUid: user.uid,
+        riderName: userModel?.name ?? user.displayName ?? 'Rider',
+        riderPhone: userModel?.phone ?? '',
+        driverUid: ride.driverUid,
+        driverName: ride.driverName,
+        from: ride.from,
+        to: ride.to,
+        rideDate: ride.rideDate,
+        rideTime: ride.rideTime,
+        seatsBooked: seats,
+        totalPrice: ride.pricePerSeat * seats,
+        pricePerSeat: ride.pricePerSeat,
+        createdAt: DateTime.now(),
+      );
+
+      await fb.createBookingRequest(booking);
+
+      HapticFeedback.heavyImpact();
+      return "✅ **Success!** I have sent a booking request to ${ride.driverName} for a ride from ${ride.from} to ${ride.to}. You will be notified once they accept! 🚗";
+    } catch (e) {
+      return "❌ Booking failed: $e";
+    }
+  }
+
   void _addWelcomeMessage() {
+    final l10n = AppLocalizations.of(context);
     _messages.add({
-      'text':
+      'text': l10n?.welcomeAiMessage ??
       '🙏 Namaste! I am SaathChalo AI!\n\nI can help you with:\n\n🗺️ Best carpool routes\n💰 Fare calculations\n🚦 Best travel times\n🛡️ Safety tips\n💬 Carpooling advice\n\nHow can I help you today?',
       'isUser': false,
       'isError': false,
@@ -157,7 +215,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             .toList();
       }
 
-      final aiText = await AIAssistantService.askAssistant(
+      var aiText = await AIAssistantService.askAssistant(
         message: text,
         history: _conversationHistory,
         user: userData != null
@@ -181,6 +239,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         globalRides: globalRides,
         safetySettings: safetySettings,
       );
+
+      // ✅ Check for Agentic Actions
+      if (aiText.contains('[ACTION:BOOK_RIDE:')) {
+        final bookingResult = await _handleAiBooking(aiText);
+        aiText = aiText.replaceAll(RegExp(r'\[ACTION:BOOK_RIDE:.*?\]'), '') + "\n\n$bookingResult";
+      }
 
       // ✅ Add conversation to history
       _conversationHistory.add({'role': 'user', 'content': text});
@@ -319,7 +383,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'SaathChalo AI',
+                  l10n?.aiAssistant ?? 'SaathChalo AI',
                   style: TextStyle(
                     fontSize: 15.sp,
                     fontWeight: FontWeight.bold,
@@ -338,7 +402,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     ),
                     SizedBox(width: 4.w),
                     Text(
-                      'Powered by Mistral & Tavily',
+                      l10n?.poweredBy ?? 'Powered by Mistral & Tavily',
                       style: TextStyle(
                         fontSize: 10.sp,
                         color: AppColors.white.withValues(alpha: 0.8),
@@ -354,7 +418,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           IconButton(
             onPressed: _clearChat,
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'New Chat',
+            tooltip: l10n?.newChat ?? 'New Chat',
           ),
           SizedBox(width: 8.w),
         ],
@@ -578,7 +642,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   textCapitalization: TextCapitalization.sentences,
                   onSubmitted: (_) => _sendMessage(),
                   decoration: InputDecoration(
-                    hintText: 'Ask me anything...',
+                    hintText: l10n?.askMeAnything ?? 'Ask me anything...',
                     hintStyle: TextStyle(
                       color: AppColors.textHint,
                       fontSize: 14.sp,

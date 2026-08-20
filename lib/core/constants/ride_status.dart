@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
+
 class RideStatus {
   // Ride statuses
   static const String active = 'active';
@@ -15,20 +18,22 @@ class RideStatus {
   static const String rejected = 'rejected';
 
   // Human readable labels
-  static String getLabel(String status) {
+  static String getLabel(BuildContext context, String status) {
+    final l10n = AppLocalizations.of(context);
     switch (status) {
-      case pending: return 'Waiting for Driver';
+      case pending: return l10n?.pending ?? 'Waiting for Driver';
       case accepted:
-      case confirmed: return 'Booking Confirmed ✅';
-      case enRoute: return 'Driver Coming 🚗';
-      case started: return 'Ride Started 🟢';
-      case ended: return 'Ride Completed ✅';
-      case rejected: return 'Request Declined ❌';
+      case confirmed: return l10n?.confirmed ?? 'Booking Confirmed ✅';
+      case enRoute: return l10n?.trackMyRide ?? 'Driver Coming 🚗';
+      case started: return l10n?.started ?? 'Ride Started 🟢';
+      case ended: return l10n?.ended ?? 'Ride Completed ✅';
+      case rejected: return l10n?.decline ?? 'Request Declined ❌';
       default: return status;
     }
   }
 
-  static String getDriverLabel(String status) {
+  static String getDriverLabel(BuildContext context, String status) {
+    // Note: We might need more specific driver-side keys in ARB later
     switch (status) {
       case accepted:
       case confirmed: return 'Go to Pickup Point';

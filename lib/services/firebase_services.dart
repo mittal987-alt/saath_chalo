@@ -228,13 +228,14 @@ class FirebaseService {
         final bookingRef = _db.collection('bookings').doc(bookingId);
 
         final rideSnap = await transaction.get(rideRef);
-        await transaction.get(bookingRef);
+        final bookingSnap = await transaction.get(bookingRef);
 
-        if (!rideSnap.exists) {
-          return {'success': false, 'message': 'Ride not found!'};
+        if (!rideSnap.exists || !bookingSnap.exists) {
+          return {'success': false, 'message': 'Ride or Booking not found!'};
         }
 
         final int currentSeats = rideSnap.data()?['availableSeats'] ?? 0;
+        final bookingData = bookingSnap.data() as Map<String, dynamic>;
 
         if (currentSeats < seatsRequested) {
           return {
@@ -253,6 +254,20 @@ class FirebaseService {
         transaction.update(bookingRef, {
           'status': 'accepted',
         });
+
+        // Initialize chat document immediately
+        transaction.set(_db.collection('ride_chats').doc(bookingId), {
+          'bookingId': bookingId,
+          'rideId': rideId,
+          'driverUid': bookingData['driverUid'],
+          'driverName': bookingData['driverName'],
+          'riderUid': bookingData['riderUid'],
+          'riderName': bookingData['riderName'],
+          'participants': [bookingData['driverUid'], bookingData['riderUid']],
+          'lastMessage': 'Booking accepted! You can now chat.',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          'lastSenderId': 'system',
+        }, SetOptions(merge: true));
 
         return {
           'success': true,

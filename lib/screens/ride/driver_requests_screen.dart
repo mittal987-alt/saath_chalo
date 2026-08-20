@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
+import '../../l10n/app_localizations.dart';
 import '../payment/payment_screen.dart';
 import '../chat/ride_chat_screen.dart';
 
@@ -13,11 +14,12 @@ class DriverRequestsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Ride Requests'),
+        title: Text(l10n?.requests ?? 'Ride Requests'),
         backgroundColor: AppColors.secondary,
         foregroundColor: AppColors.white,
         elevation: 0,
@@ -73,7 +75,7 @@ class DriverRequestsScreen extends StatelessWidget {
                       size: 64.sp, color: AppColors.border),
                   SizedBox(height: 16.h),
                   Text(
-                    'No pending requests!',
+                    l10n?.noMessagesYet ?? 'No pending requests!',
                     style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
@@ -196,6 +198,7 @@ class _RequestCardState extends State<_RequestCard> {
   @override
   Widget build(BuildContext context) {
     final b = widget.booking;
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(16.w),
@@ -258,7 +261,7 @@ class _RequestCardState extends State<_RequestCard> {
                         color: AppColors.primary,
                       ),
                     ),
-                    Text('seat(s)',
+                    Text(l10n?.booked ?? 'seat(s)',
                         style: TextStyle(
                             fontSize: 10.sp,
                             color: AppColors.textSecondary)),
@@ -299,7 +302,7 @@ class _RequestCardState extends State<_RequestCard> {
                   color: AppColors.success, size: 16.sp),
               SizedBox(width: 8.w),
               Text(
-                '₹${b.totalPrice.toStringAsFixed(0)} total  •  ₹${b.pricePerSeat.toStringAsFixed(0)}/seat',
+                '₹${b.totalPrice.toStringAsFixed(0)} total  •  ₹${b.pricePerSeat.toStringAsFixed(0)}/${l10n?.perSeat ?? "seat"}',
                 style: TextStyle(
                     fontSize: 13.sp,
                     color: AppColors.textPrimary,
@@ -329,8 +332,8 @@ class _RequestCardState extends State<_RequestCard> {
                           color: AppColors.error))
                       : Icon(Icons.close_rounded,
                       color: AppColors.error, size: 18.sp),
-                  label: Text('Decline',
-                      style: TextStyle(color: AppColors.error)),
+                  label: Text(l10n?.decline ?? 'Decline',
+                      style: const TextStyle(color: AppColors.error)),
                 ),
               ),
 
@@ -351,7 +354,7 @@ class _RequestCardState extends State<_RequestCard> {
                           color: AppColors.white))
                       : Icon(Icons.check_rounded,
                       color: AppColors.white, size: 18.sp),
-                  label: const Text('Accept'),
+                  label: Text(l10n?.accept ?? 'Accept'),
                 ),
               ),
             ],
@@ -376,7 +379,7 @@ class _RequestCardState extends State<_RequestCard> {
             icon: Icon(Icons.chat_rounded,
                 color: AppColors.primary, size: 16.sp),
             label: Text(
-              'Chat with ${widget.booking.riderName.isEmpty ? 'Rider' : widget.booking.riderName}',
+              l10n?.chatWith(widget.booking.riderName.isEmpty ? (l10n.rider) : widget.booking.riderName, '') ?? 'Chat',
               style: TextStyle(
                   color: AppColors.primary, fontSize: 13.sp),
             ),

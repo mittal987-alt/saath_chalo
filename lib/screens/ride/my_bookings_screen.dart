@@ -8,6 +8,7 @@ import '../../core/constants/ride_status.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../l10n/app_localizations.dart';
 import 'active_ride_screen.dart';
 import '../payment/payment_screen.dart';
 
@@ -18,6 +19,7 @@ class MyBookingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
@@ -33,7 +35,7 @@ class MyBookingsScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
               title: Text(
-                'My Bookings',
+                l10n?.myBookings ?? 'My Bookings',
                 style: TextStyle(
                   fontSize: 20.sp,
                   fontWeight: FontWeight.w800,
@@ -106,7 +108,7 @@ class MyBookingsScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 24.h),
                         Text(
-                          'No rides booked yet!',
+                          l10n?.noBookingsYet ?? 'No rides booked yet!',
                           style: TextStyle(
                             fontSize: 18.sp,
                             fontWeight: FontWeight.w700,
@@ -115,7 +117,7 @@ class MyBookingsScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 8.h),
                         Text(
-                          'Find a ride and start your carpooling journey.',
+                          l10n?.enterLocationsToSearch ?? 'Find a ride and start your carpooling journey.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 13.sp,
@@ -232,7 +234,7 @@ class _BookingCard extends StatelessWidget {
                   Icon(_statusIcon(booking.status), color: statusColor, size: 16.sp),
                   SizedBox(width: 8.w),
                   Text(
-                    RideStatus.getLabel(booking.status),
+                    RideStatus.getLabel(context, booking.status),
                     style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: statusColor),
                   ),
                   const Spacer(),
@@ -244,7 +246,7 @@ class _BookingCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Text(
-                        'LIVE',
+                        AppLocalizations.of(context)?.live ?? 'LIVE',
                         style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1),
                       ),
                     ),
@@ -345,7 +347,7 @@ class _BookingCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${booking.seatsBooked} seat${booking.seatsBooked > 1 ? "s" : ""} booked',
+                              '${booking.seatsBooked} ${booking.seatsBooked > 1 ? (AppLocalizations.of(context)?.booked ?? "seats") : (AppLocalizations.of(context)?.booked ?? "seat")} booked',
                               style: TextStyle(fontSize: 11.sp, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                             ),
                           ],
@@ -405,7 +407,7 @@ class _BookingCard extends StatelessWidget {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
                           ),
                           icon: const Icon(Icons.map_rounded, color: Colors.white),
-                          label: const Text('Track My Ride', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          label: Text(AppLocalizations.of(context)?.trackMyRide ?? 'Track My Ride', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                         ),
                       ),
                     ),
@@ -435,7 +437,7 @@ class _BookingCard extends StatelessWidget {
                         ),
                         icon: const Icon(Icons.payment_rounded, color: Colors.white),
                         label: Text(
-                          'Pay ₹${booking.totalPrice.toStringAsFixed(0)}',
+                          '${AppLocalizations.of(context)?.payNow ?? "Pay"} ₹${booking.totalPrice.toStringAsFixed(0)}',
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                         ),
                       ),

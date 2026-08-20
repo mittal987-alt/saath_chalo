@@ -97,10 +97,26 @@ class _RideChatScreenState extends State<RideChatScreen> {
       'driverName': widget.booking.driverName,
       'riderUid': widget.booking.riderUid,
       'riderName': widget.booking.riderName,
+      'participants': [widget.booking.driverUid, widget.booking.riderUid],
       'lastMessage': text.trim(),
       'lastMessageTime': FieldValue.serverTimestamp(),
       'lastSenderId': _user?.uid ?? '',
     }, SetOptions(merge: true));
+
+    // Send notification to the other person
+    final String otherUid = widget.isDriver ? widget.booking.riderUid : widget.booking.driverUid;
+    await _db.collection('notifications').add({
+      'toUid': otherUid,
+      'title': 'New Message from $_myName 💬',
+      'body': text.trim(),
+      'type': 'chat_message',
+      'data': {
+        'bookingId': _chatId,
+        'senderId': _user?.uid,
+      },
+      'isRead': false,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
     _scrollToBottom();
   }
@@ -251,7 +267,62 @@ class _RideChatScreenState extends State<RideChatScreen> {
                   itemBuilder: (context, index) {
                     final msg = messages[index].data() as Map<String, dynamic>? ?? {};
                     final isMe = msg['senderId'] == _user?.uid;
-                    return _buildMessageBubble(msg, isMe);
+                    
+                    // Logic for date separator
+                    bool showDateSeparator = false;
+                    String dateText = '';
+                    if (index == 0) {
+                      showDateSeparator = true;
+                    } else {
+                      final prevMsg = messages[index - 1].data() as Map<String, dynamic>;
+                      final prevTime = (prevMsg['timestamp'] as Timestamp?)?.toDate();
+                      final currTime = (msg['timestamp'] as Timestamp?)?.toDate();
+                      
+                      if (prevTime != null && currTime != null) {
+                        if (prevTime.day != currTime.day || prevTime.month != currTime.month || prevTime.year != currTime.year) {
+                          showDateSeparator = true;
+                        }
+                      }
+                    }
+
+                    if (showDateSeparator) {
+                      final date = (msg['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+                      final now = DateTime.now();
+                      if (date.day == now.day && date.month == now.month && date.year == now.year) {
+                        dateText = 'Today';
+                      } else if (date.day == now.subtract(const Duration(days: 1)).day) {
+                        dateText = 'Yesterday';
+                      } else {
+                        dateText = '${date.day}/${date.month}/${date.year}';
+                      }
+                    }
+
+                    return Column(
+                      children: [
+                        if (showDateSeparator)
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.h),
+                            child: Center(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                                decoration: BoxDecoration(
+                                  color: AppColors.textHint.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Text(
+                                  dateText,
+                                  style: TextStyle(
+                                    fontSize: 10.sp,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        _buildMessageBubble(msg, isMe),
+                      ],
+                    );
                   },
                 );
               },
@@ -594,9 +665,16 @@ class _RideChatScreenState extends State<RideChatScreen> {
       } else {
         return '';
       }
+      final now = DateTime.now();
       final hour = dt.hour.toString().padLeft(2, '0');
       final min = dt.minute.toString().padLeft(2, '0');
-      return '$hour:$min';
+      final timeStr = '$hour:$min';
+
+      // If today, just show time. If not, show date + time.
+      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+        return timeStr;
+      }
+      return '${dt.day}/${dt.month} $timeStr';
     } catch (_) {
       return '';
     }

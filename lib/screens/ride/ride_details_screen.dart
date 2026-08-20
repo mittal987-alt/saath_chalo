@@ -5,6 +5,8 @@ import '../../core/constants/app_colors.dart';
 import '../../models/ride_model.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
+import '../../l10n/app_localizations.dart';
+import '../../core/constants/ride_status.dart';
 import 'driver_requests_screen.dart';
 import 'active_ride_screen.dart';
 import '../chat/ride_chat_screen.dart';
@@ -19,6 +21,7 @@ class RideDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -93,7 +96,7 @@ class RideDetailScreen extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: EdgeInsets.fromLTRB(20.w, 0, 0, 16.h),
               title: Text(
-                'Ride Details',
+                l10n?.rideDetails ?? 'Ride Details',
                 style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.w800, color: Colors.white),
               ),
               background: Container(
@@ -128,13 +131,13 @@ class RideDetailScreen extends StatelessWidget {
               padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
-                  _buildStatusCard(),
+                  _buildStatusCard(context),
                   SizedBox(height: 16.h),
-                  _buildRouteCard(),
+                  _buildRouteCard(context),
                   SizedBox(height: 16.h),
-                  _buildDetailsCard(),
+                  _buildDetailsCard(context),
                   SizedBox(height: 16.h),
-                  _buildPassengersCard(),
+                  _buildPassengersCard(context),
                   SizedBox(height: 16.h),
                   _buildActionButtons(context),
                   SizedBox(height: 32.h),
@@ -148,7 +151,8 @@ class RideDetailScreen extends StatelessWidget {
   }
 
   // ─────────────────────────────────────────────
-  Widget _buildStatusCard() {
+  Widget _buildStatusCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bool isActive = ride.status == 'active';
     final bool isCancelled = ride.status == 'cancelled';
     final bool isFull = ride.status == 'full';
@@ -162,22 +166,22 @@ class RideDetailScreen extends StatelessWidget {
       startColor = AppColors.primary;
       endColor = AppColors.primaryDark;
       statusIcon = Icons.radio_button_checked;
-      statusText = 'Active Ride 🟢';
+      statusText = l10n?.activeRideStatus ?? 'Active Ride 🟢';
     } else if (isCancelled) {
       startColor = AppColors.error;
       endColor = AppColors.error.withOpacity(0.8);
       statusIcon = Icons.cancel_rounded;
-      statusText = 'Cancelled ❌';
+      statusText = l10n?.cancelledStatus ?? 'Cancelled ❌';
     } else if (isFull) {
       startColor = AppColors.warning;
       endColor = AppColors.warning.withOpacity(0.8);
       statusIcon = Icons.event_busy_rounded;
-      statusText = 'Fully Booked 🎫';
+      statusText = l10n?.fullyBookedStatus ?? 'Fully Booked 🎫';
     } else {
       startColor = AppColors.textSecondary;
       endColor = AppColors.textHint;
       statusIcon = Icons.check_circle_rounded;
-      statusText = 'Completed ✅';
+      statusText = l10n?.completedStatus ?? 'Completed ✅';
     }
 
     return Hero(
@@ -233,7 +237,7 @@ class RideDetailScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'per seat',
+                    l10n?.perSeat ?? 'per seat',
                     style: TextStyle(
                       fontSize: 10.sp,
                       color: AppColors.white.withOpacity(0.7),
@@ -249,7 +253,8 @@ class RideDetailScreen extends StatelessWidget {
   }
 
   // ─────────────────────────────────────────────
-  Widget _buildRouteCard() {
+  Widget _buildRouteCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -264,7 +269,7 @@ class RideDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Route',
+            l10n?.route ?? 'Route',
             style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.bold,
@@ -325,7 +330,8 @@ class RideDetailScreen extends StatelessWidget {
   }
 
   // ─────────────────────────────────────────────
-  Widget _buildDetailsCard() {
+  Widget _buildDetailsCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -340,30 +346,30 @@ class RideDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ride Details',
+            l10n?.rideDetails ?? 'Ride Details',
             style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary),
           ),
           SizedBox(height: 16.h),
-          _buildDetailRow(Icons.directions_car_rounded, 'Vehicle', ride.vehicle),
-          _buildDetailRow(Icons.event_seat_rounded, 'Available Seats',
+          _buildDetailRow(Icons.directions_car_rounded, l10n?.vehicle ?? 'Vehicle', ride.vehicle),
+          _buildDetailRow(Icons.event_seat_rounded, l10n?.availableSeats ?? 'Available Seats',
               '${ride.availableSeats}'),
-          _buildDetailRow(Icons.currency_rupee_rounded, 'Price per Seat',
+          _buildDetailRow(Icons.currency_rupee_rounded, l10n?.pricePerSeat ?? 'Price per Seat',
               '₹${ride.pricePerSeat.toStringAsFixed(0)}'),
-          _buildDetailRow(Icons.woman_rounded, 'Women Only',
-              ride.womenOnly ? 'Yes 👩' : 'No'),
+          _buildDetailRow(Icons.woman_rounded, l10n?.womenOnly ?? 'Women Only',
+              ride.womenOnly ? (l10n?.confirm ?? 'Yes') : (l10n?.cancel ?? 'No')),
           const Divider(),
-          _buildDetailRow(Icons.music_note_rounded, 'Music Allowed',
-              ride.musicAllowed ? 'Yes 🎵' : 'No'),
-          _buildDetailRow(Icons.pets_rounded, 'Pets Allowed',
-              ride.petsAllowed ? 'Yes 🐾' : 'No'),
-          _buildDetailRow(Icons.smoking_rooms_rounded, 'Smoking Allowed',
-              ride.smokingAllowed ? 'Yes 🚬' : 'No'),
-          _buildDetailRow(Icons.ac_unit_rounded, 'AC Preferred',
-              ride.acPreferred ? 'Yes ❄️' : 'No'),
-          _buildDetailRow(Icons.info_rounded, 'Status', ride.status.toUpperCase()),
+          _buildDetailRow(Icons.music_note_rounded, l10n?.musicAllowedLabel ?? 'Music Allowed',
+              ride.musicAllowed ? (l10n?.confirm ?? 'Yes') : (l10n?.cancel ?? 'No')),
+          _buildDetailRow(Icons.pets_rounded, l10n?.petsAllowedLabel ?? 'Pets Allowed',
+              ride.petsAllowed ? (l10n?.confirm ?? 'Yes') : (l10n?.cancel ?? 'No')),
+          _buildDetailRow(Icons.smoking_rooms_rounded, l10n?.smokingAllowedLabel ?? 'Smoking Allowed',
+              ride.smokingAllowed ? (l10n?.confirm ?? 'Yes') : (l10n?.cancel ?? 'No')),
+          _buildDetailRow(Icons.ac_unit_rounded, l10n?.acPreferredLabel ?? 'AC Preferred',
+              ride.acPreferred ? (l10n?.confirm ?? 'Yes') : (l10n?.cancel ?? 'No')),
+          _buildDetailRow(Icons.info_rounded, l10n?.status ?? 'Status', ride.status.toUpperCase()),
         ],
       ),
     );
@@ -399,7 +405,8 @@ class RideDetailScreen extends StatelessWidget {
   }
 
   // ─────────────────────────────────────────────
-  Widget _buildPassengersCard() {
+  Widget _buildPassengersCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -414,7 +421,7 @@ class RideDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Passengers',
+            l10n?.passengers ?? 'Passengers',
             style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.bold,
@@ -443,7 +450,7 @@ class RideDetailScreen extends StatelessWidget {
                         size: 40, color: AppColors.border),
                     const SizedBox(height: 8),
                     Text(
-                      'No passengers yet.\nShare your ride to get passengers!',
+                      l10n?.noPassengersYet ?? 'No passengers yet.\nShare your ride to get passengers!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 13.sp, color: AppColors.textSecondary),
@@ -477,14 +484,14 @@ class RideDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                b.riderName.isEmpty ? 'Rider' : b.riderName,
+                                b.riderName.isEmpty ? (l10n?.rider ?? 'Rider') : b.riderName,
                                 style: TextStyle(
                                     fontSize: 13.sp,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary),
                               ),
                               Text(
-                                '${b.seatsBooked} seat(s)  •  ₹${b.totalPrice.toStringAsFixed(0)}',
+                                '${b.seatsBooked} ${b.seatsBooked > 1 ? (l10n?.booked ?? "seats") : (l10n?.booked ?? "seat")}  •  ₹${b.totalPrice.toStringAsFixed(0)}',
                                 style: TextStyle(
                                     fontSize: 11.sp, color: AppColors.textSecondary),
                               ),
@@ -499,7 +506,7 @@ class RideDetailScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8.r),
                           ),
                           child: Text(
-                            b.status.toUpperCase(),
+                            RideStatus.getLabel(context, b.status).toUpperCase(),
                             style: TextStyle(
                               fontSize: 9.sp,
                               fontWeight: FontWeight.bold,
@@ -539,6 +546,7 @@ class RideDetailScreen extends StatelessWidget {
 
   // ─────────────────────────────────────────────
   Widget _buildActionButtons(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       children: [
         // ── View Requests Button ──────────────
@@ -560,8 +568,8 @@ class RideDetailScreen extends StatelessWidget {
               icon: const Icon(Icons.people_rounded),
               label: Text(
                 count > 0
-                    ? 'View $count Pending Request${count > 1 ? 's' : ''}  🔔'
-                    : 'View All Requests',
+                    ? (l10n?.viewPendingRequests(count, count > 1 ? 's' : '') ?? 'View $count Pending Requests')
+                    : (l10n?.viewAllRequests ?? 'View All Requests'),
               ),
             );
           },
@@ -595,7 +603,7 @@ class RideDetailScreen extends StatelessWidget {
     minimumSize: Size(double.infinity, 48.h),
     ),
     icon: const Icon(Icons.share_location_rounded),
-    label: const Text('Share Ride & Navigate 🗺️'),
+    label: Text(l10n?.shareRideNavigate ?? 'Share Ride & Navigate 🗺️'),
     ),
     SizedBox(height: 12.h),
     ],
@@ -622,7 +630,7 @@ class RideDetailScreen extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Chat with Passengers',
+                    l10n?.chatWithPassengers ?? 'Chat with Passengers',
                     style: TextStyle(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w600,
@@ -657,7 +665,7 @@ class RideDetailScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              'Chat with ${booking.riderName.isEmpty ? 'Rider' : booking.riderName}',
+                              l10n?.chatWith(booking.riderName.isEmpty ? (l10n.rider) : booking.riderName, '') ?? 'Chat',
                               style: TextStyle(
                                   color: AppColors.primary, fontSize: 13.sp),
                             ),
@@ -703,7 +711,7 @@ class RideDetailScreen extends StatelessWidget {
                     minimumSize: Size(double.infinity, 48.h),
                   ),
                   icon: const Icon(Icons.map_rounded),
-                  label: const Text('Open Active Ride Map'),
+                  label: Text(l10n?.openActiveRideMap ?? 'Open Active Ride Map'),
                 ),
                 SizedBox(height: 12.h),
               ],
@@ -721,19 +729,19 @@ class RideDetailScreen extends StatelessWidget {
                   builder: (ctx) => AlertDialog(
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16.r)),
-                    title: const Text('Cancel Ride?'),
-                    content: const Text(
-                        'This will cancel your ride and notify all passengers.'),
+                    title: Text(l10n?.cancelRideConfirmTitle ?? 'Cancel Ride?'),
+                    content: Text(
+                        l10n?.cancelRideConfirmContent ?? 'This will cancel your ride and notify all passengers.'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('No'),
+                        child: Text(l10n?.no ?? 'No'),
                       ),
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.error),
-                        child: const Text('Yes, Cancel'),
+                        child: Text(l10n?.yesCancel ?? 'Yes, Cancel'),
                       ),
                     ],
                   ),
@@ -751,8 +759,8 @@ class RideDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12)),
               ),
               icon: const Icon(Icons.cancel_rounded, color: AppColors.error),
-              label: const Text('Cancel Ride',
-                  style: TextStyle(color: AppColors.error)),
+              label: Text(l10n?.cancelRide ?? 'Cancel Ride',
+                  style: const TextStyle(color: AppColors.error)),
             ),
           ),
       ],

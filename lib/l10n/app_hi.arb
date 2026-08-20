@@ -11,11 +11,64 @@
   "profile": "प्रोफ़ाइल",
   "requests": "अनुरोध",
   "home": "होम",
+  "aiAssistant": "AI असिस्टेंट",
+  "bookings": "बुकिंग",
   "ai": "AI",
   "whereToGo": "आप कहाँ जाना चाहते हैं?",
   "exploreServices": "सेवाएं देखें",
   "liveRideNetwork": "लाइव राइड नेटवर्क",
+  "recentRides": "हालिया राइड",
+  "ecoFriendly": "पर्यावरण के अनुकूल",
+  "zeroEmission": "शून्य उत्सर्जन",
+  "community": "कम्युनिटी",
+  "verifiedPeers": "सत्यापित साथी",
+  "safety": "सुरक्षा",
+  "sosAndSupport": "SOS और सहायता",
+  "welcomeAiMessage": "🙏 नमस्ते! मैं साथ चलो AI हूँ!\n\nमैं आपकी इसमें मदद कर सकता हूँ:\n\n🗺️ सबसे अच्छे कारपूल रूट\n💰 किराए की गणना\n🚦 यात्रा का सही समय\n🛡️ सुरक्षा सुझाव\n💬 कारपूलिंग सलाह\n\nआज मैं आपकी कैसे मदद कर सकता हूँ?",
+  "poweredBy": "Mistral और Tavily द्वारा संचालित",
+  "newChat": "नई चैट",
   "myOfferedRides": "मेरी दी गई राइड",
+  "findARide": "राइड खोजें",
+  "enterFromTo": "कृपया प्रस्थान और गंतव्य स्थान दर्ज करें",
+  "findPerfectCarpool": "अपनी सही कारपूल खोजें",
+  "enterLocationsToSearch": "अपने आस-पास उपलब्ध राइड खोजने के लिए ऊपर अपना पिकअप और ड्रॉप-ऑफ स्थान दर्ज करें।",
+  "noRidesAvailable": "अभी कोई राइड उपलब्ध नहीं है!",
+  "tryDifferentLocations": "अलग-अलग स्थानों की कोशिश करें या बाद में देखें।",
+  "noMatchingRides": "इस रूट के लिए कोई मेल खाती राइड नहीं मिली!",
+  "ridesFound": "{count} राइड मिली 🎉",
+  "@ridesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "requestSeats": "{count} सीट के लिए अनुरोध करें",
+  "@requestSeats": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "requestSent": "अनुरोध भेज दिया गया! ⏳",
+  "waitingForDriver": "{name} के स्वीकार करने का इंतज़ार है। पुष्टि होने पर आपको सूचना मिल जाएगी!",
+  "@waitingForDriver": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "okGotIt": "ठीक है, समझ गया!",
+  "music": "संगीत",
+  "noMusic": "संगीत नहीं",
+  "pets": "पालतू जानवर",
+  "noPets": "पालतू जानवर नहीं",
+  "smoking": "धूम्रपान",
+  "noSmoking": "धूम्रपान नहीं",
+  "ac": "AC",
+  "noAc": "AC नहीं",
   "yourImpact": "आपका योगदान 🌱",
   "moneySaved": "बचाए पैसे",
   "co2Reduced": "CO₂ कम किया",
@@ -106,5 +159,113 @@
   "today": "आज",
   "thisWeek": "इस सप्ताह",
   "thisMonth": "इस महीने",
-  "allTime": "सभी समय"
+  "allTime": "सभी समय",
+  "account": "अकाउंट",
+  "rides": "राइड",
+  "preferencesTitle": "पसंद",
+  "updatePersonalInfo": "अपनी व्यक्तिगत जानकारी अपडेट करें",
+  "trackEarnings": "अपनी ड्राइवर कमाई ट्रैक करें",
+  "myRatings": "मेरी रेटिंग",
+  "seeReviews": "यात्रियों की समीक्षाएं देखें",
+  "myBookings": "मेरी बुकिंग",
+  "viewActiveRides": "सक्रिय और आगामी राइड देखें",
+  "viewPastTrips": "अपनी पुरानी यात्राएं देखें",
+  "paymentHistory": "भुगतान इतिहास",
+  "managePayments": "भुगतान और रसीदें प्रबंधित करें",
+  "configureSafety": "यात्रा सुरक्षा विकल्प कॉन्फ़िगर करें",
+  "manageContacts": "विश्वसनीय संपर्क प्रबंधित करें",
+  "sosSettings": "SOS सेटिंग",
+  "configureSos": "आपातकालीन अलर्ट कॉन्फ़िगर करें",
+  "manageAlerts": "ऐप अलर्ट प्रबंधित करें",
+  "getHelp": "मदद लें, हमसे संपर्क करें",
+  "appInfo": "ऐप की जानकारी और वर्शन",
+  "rating": "रेटिंग",
+  "logoutConfirm": "क्या आप वाकई लॉगआउट करना चाहते हैं?",
+  "emailUs": "हमें ईमेल करें",
+  "callUs": "हमें कॉल करें",
+  "whatsapp": "व्हाट्सएप",
+  "close": "बंद करें",
+  "chooseLanguage": "भाषा चुनें",
+  "rider": "राइडर",
+  "driver": "ड्राइवर",
+  "newMessageFrom": "{name} से नया संदेश 💬",
+  "@newMessageFrom": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "sayHiToYour": "अपने {role} को नमस्ते कहें 👋",
+  "@sayHiToYour": {
+    "placeholders": {
+      "role": { "type": "String" }
+    }
+  },
+  "sayHello": "नमस्ते कहें!",
+  "messageHint": "संदेश...",
+  "quickReplyOnMyWay": "👍 रास्ते में हूँ!",
+  "quickReply5Mins": "⏰ 5 मिनट में पहुँच रहा हूँ",
+  "quickReplyAtPickup": "📍 मैं पिकअप पॉइंट पर हूँ",
+  "quickReplyArrived": "🚗 मैं पहुँच गया हूँ",
+  "quickReplyGotIt": "✅ समझ गया!",
+  "quickReplyThankYou": "🙏 धन्यवाद",
+  "quickReplyWhereAreYou": "❓ आप कहाँ हैं?",
+  "quickReplyPleaseWait": "⌛ कृपया प्रतीक्षा करें",
+  "couldNotLaunchDialer": "डायलर शुरू नहीं किया जा सका",
+  "phoneNumberNotAvailable": "फ़ोन नंबर उपलब्ध नहीं है",
+  "messages": "संदेश",
+  "pleaseLoginMessages": "संदेश देखने के लिए कृपया लॉगिन करें",
+  "tapToStartConversation": "बातचीत शुरू करने के लिए टैप करें",
+  "noMessagesYet": "अभी तक कोई संदेश नहीं",
+  "conversationsWillAppearHere": "आपकी राइड की बातचीत यहाँ दिखाई देगी।",
+  "rideDetails": "राइड विवरण",
+  "activeRideStatus": "सक्रिय राइड 🟢",
+  "cancelledStatus": "रद्द ❌",
+  "fullyBookedStatus": "पूरी तरह बुक 🎫",
+  "completedStatus": "पूर्ण ✅",
+  "route": "रूट",
+  "passengers": "यात्री",
+  "chatWithPassengers": "यात्रियों के साथ चैट करें",
+  "noPassengersYet": "अभी तक कोई यात्री नहीं है।\nयात्री पाने के लिए अपनी राइड शेयर करें!",
+  "viewPendingRequests": "{count} लंबित अनुरोध {s} देखें 🔔",
+  "@viewPendingRequests": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "s": { "type": "String" }
+    }
+  },
+  "viewAllRequests": "सभी अनुरोध देखें",
+  "shareRideNavigate": "राइड शेयर करें और नेविगेट करें 🗺️",
+  "openActiveRideMap": "सक्रिय राइड मैप खोलें",
+  "cancelRide": "राइड रद्द करें",
+  "cancelRideConfirmTitle": "राइड रद्द करें?",
+  "cancelRideConfirmContent": "इससे आपकी राइड रद्द हो जाएगी और सभी यात्रियों को सूचित कर दिया जाएगा।",
+  "no": "नहीं",
+  "yesCancel": "हाँ, रद्द करें",
+  "activeRideInProgress": "सक्रिय राइड प्रगति पर है",
+  "chatWith": "{name} के साथ चैट करें {emoji}",
+  "@chatWith": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "emoji": { "type": "String" }
+    }
+  },
+  "yourDriver": "आपका ड्राइवर",
+  "live": "लाइव",
+  "driverDashboard": "ड्राइवर डैशबोर्ड",
+  "passengerMode": "पैसेंजर मोड",
+  "active": "सक्रिय",
+  "noActiveRides": "वर्तमान में कोई सक्रिय राइड नहीं है।",
+  "riderLabel": "राइडर: {name}",
+  "@riderLabel": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "requestsTab": "अनुरोध",
+  "activeTab": "सक्रिय",
+  "chatsTab": "चैट",
+  "earningsTab": "कमाई",
+  "profileTab": "प्रोफ़ाइल",
+  "offerRideButton": "राइड दें",
+  "passengerButton": "पैसेंजर"
 }

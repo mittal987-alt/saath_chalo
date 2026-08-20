@@ -11,8 +11,10 @@ import '../../core/constants/ride_status.dart';
 import '../../models/booking_model.dart';
 import '../../services/firebase_services.dart';
 import '../../services/location_services.dart';
+import '../../l10n/app_localizations.dart';
 import '../payment/payment_screen.dart';
 import 'ride_sharing_screen.dart';
+import '../chat/ride_chat_screen.dart';
 
 class ActiveRideScreen extends StatefulWidget {
   final BookingModel booking;
@@ -36,7 +38,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   String _currentStatus = '';
   double _driverSpeed = 0;
   String _eta = '';
-  String _trackingStatus = 'Waiting for live location';
+  String? _trackingStatus;
   bool _isUpdatingStatus = false;
   Position? _myPosition;
 
@@ -49,7 +51,6 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
     _initLocation();
     // Driver starts sharing location automatically
     if (widget.isDriver) {
-      setState(() => _trackingStatus = 'Starting live tracking...');
       _locationService.startSharingLocation(
           widget.booking.rideId, true);
     }
@@ -73,13 +74,14 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
   // Called whenever driver location updates in Firestore
   void _onDriverLocationUpdated(Map<String, dynamic> loc) {
+    final l10n = AppLocalizations.of(context);
     final lat = (loc['lat'] ?? 0).toDouble();
     final lng = (loc['lng'] ?? 0).toDouble();
     final speed = (loc['speed'] ?? 0).toDouble();
 
     setState(() {
       _driverSpeed = speed;
-      _trackingStatus = 'Live tracking active';
+      _trackingStatus = l10n?.liveTrackingActive ?? 'Live tracking active';
     });
 
     // Update driver marker
@@ -87,7 +89,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
       'driver',
       lat,
       lng,
-      widget.isDriver ? 'You (Driver)' : 'Your Driver',
+      widget.isDriver ? (l10n?.youDriver ?? 'You (Driver)') : (l10n?.yourDriver ?? 'Your Driver'),
       BitmapDescriptor.hueBlue,
     );
 
@@ -211,8 +213,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   }
 
   void _sendSOS() async {
-    final settings = await FirebaseService().getSafetySettings(FirebaseAuth.instance.currentUser?.uid ?? '');
-    final isHindi = settings?['isHindi'] ?? false;
+    final l10n = AppLocalizations.of(context);
     final navigator = Navigator.of(context);
 
     showDialog(
@@ -225,16 +226,14 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             Icon(Icons.warning_rounded,
                 color: AppColors.error, size: 24.sp),
             SizedBox(width: 8.w),
-            Text(isHindi ? 'आपातकालीन SOS!' : 'Emergency SOS!'),
+            Text(l10n?.emergencySos ?? 'Emergency SOS!'),
           ],
         ),
-        content: Text(isHindi 
-            ? 'क्या आप सुनिश्चित हैं कि आप अपने संपर्कों को आपातकालीन अलर्ट भेजना चाहते हैं?' 
-            : 'Send emergency alert with your live location to your emergency contacts?'),
+        content: Text(l10n?.sosConfirmContent ?? 'Send emergency alert with your live location to your emergency contacts?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(isHindi ? 'रद्द करें' : 'Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -248,6 +247,8 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                   lng: _myPosition!.longitude,
                 );
 
+                final settings = await FirebaseService().getSafetySettings(FirebaseAuth.instance.currentUser?.uid ?? '');
+                
                 // 2. Local Actions (Calling/Messaging)
                 if (settings != null) {
                   // Auto-call emergency services
@@ -264,7 +265,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                     for (var contact in contacts) {
                       final phone = contact['phone'];
                       if (phone != null) {
-                        final String message = isHindi 
+                        final String message = (settings['isHindi'] ?? false)
                             ? 'आपातकालीन! मुझे मदद की ज़रूरत है। मेरी लाइव लोकेशन: https://www.google.com/maps/search/?api=1&query=${_myPosition!.latitude},${_myPosition!.longitude}'
                             : 'EMERGENCY! I need help. My live location: https://www.google.com/maps/search/?api=1&query=${_myPosition!.latitude},${_myPosition!.longitude}';
                         
@@ -285,7 +286,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                   final messenger = ScaffoldMessenger.of(context);
                   messenger.showSnackBar(
                     SnackBar(
-                      content: Text(isHindi ? '🆘 SOS अलर्ट भेज दिया गया है!' : '🆘 SOS Alert Sent!'),
+                      content: Text(l10n?.sosAlertSent ?? '🆘 SOS Alert Sent!'),
                       backgroundColor: AppColors.error,
                     ),
                   );
@@ -294,7 +295,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error),
-            child: Text(isHindi ? 'SOS भेजें' : 'Send SOS'),
+            child: Text(l10n?.send ?? 'Send SOS'),
           ),
         ],
       ),
@@ -303,6 +304,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -386,7 +388,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                         ],
                       ),
                       child: Text(
-                        RideStatus.getLabel(_currentStatus),
+                        RideStatus.getLabel(context, _currentStatus),
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: AppColors.white,
@@ -431,7 +433,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
-                        _eta.isNotEmpty ? _eta : 'Tracking live...',
+                        _eta.isNotEmpty ? _eta : (l10n?.startingTracking ?? 'Tracking live...'),
                         style: TextStyle(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
@@ -441,7 +443,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                     ),
                     SizedBox(width: 8.w),
                     Text(
-                      _trackingStatus,
+                      _trackingStatus ?? (l10n?.waitingForLocation ?? 'Waiting...'),
                       style: TextStyle(
                         fontSize: 11.sp,
                         color: AppColors.success,
@@ -475,7 +477,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri);
                   } else {
-                    messenger.showSnackBar(const SnackBar(content: Text('Could not launch dialer')));
+                    messenger.showSnackBar(SnackBar(content: Text(l10n?.couldNotLaunchDialer ?? 'Error')));
                   }
                 }, color: AppColors.error),
                 SizedBox(height: 8.h),
@@ -586,7 +588,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                                   ),
                                   SizedBox(height: 2.h),
                                   Text(
-                                    widget.isDriver ? '${widget.booking.seatsBooked} seat${widget.booking.seatsBooked > 1 ? "s" : ""} booked' : widget.booking.vehicle,
+                                    widget.isDriver ? '${widget.booking.seatsBooked} ${l10n?.booked ?? "seats"} booked' : widget.booking.vehicle,
                                     style: TextStyle(fontSize: 12.sp, color: AppColors.textSecondary),
                                   ),
                                   if (!widget.isDriver && widget.booking.driverPhone.isNotEmpty)
@@ -621,7 +623,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                                   icon: Icons.chat_bubble_rounded,
                                   color: AppColors.primary,
                                   onTap: () => Navigator.push(context, MaterialPageRoute(
-                                    builder: (_) => RideSharingScreen(booking: widget.booking, isDriver: widget.isDriver),
+                                    builder: (_) => RideChatScreen(booking: widget.booking, isDriver: widget.isDriver),
                                   )),
                                 ),
                               ],
@@ -660,7 +662,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text('₹${widget.booking.totalPrice.toStringAsFixed(0)}', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                                  Text('${widget.booking.seatsBooked} seat${widget.booking.seatsBooked > 1 ? "s" : ""}', style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary)),
+                                  Text('${widget.booking.seatsBooked} ${l10n?.booked ?? "seats"}', style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary)),
                                 ],
                               ),
                             ],
@@ -675,19 +677,19 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                   // ── Driver Action Buttons ──────────────
                   if (widget.isDriver) ...[
                     if (_currentStatus == RideStatus.accepted || _currentStatus == RideStatus.confirmed)
-                      _actionBar(Icons.directions_car_rounded, "I'm Heading to Pickup Point", AppColors.secondary, () => _updateStatus(RideStatus.enRoute)),
+                      _actionBar(Icons.directions_car_rounded, l10n?.headingToPickup ?? "I'm Heading to Pickup Point", AppColors.secondary, () => _updateStatus(RideStatus.enRoute)),
 
                     if (_currentStatus == RideStatus.enRoute)
-                      _actionBar(Icons.play_arrow_rounded, 'Start Ride', AppColors.success, _showOtpDialog),
+                      _actionBar(Icons.play_arrow_rounded, l10n?.startRide ?? 'Start Ride', AppColors.success, _showOtpDialog),
 
                     if (_currentStatus == RideStatus.started)
-                      _actionBar(Icons.stop_rounded, 'End Ride', AppColors.error, _showEndRideConfirmation),
+                      _actionBar(Icons.stop_rounded, l10n?.endRide ?? 'End Ride', AppColors.error, _showEndRideConfirmation),
                       
                     if (widget.booking.paymentMethod == 'Cash' && widget.booking.paymentStatus == 'unpaid' && (_currentStatus == RideStatus.started || _currentStatus == RideStatus.ended))
-                      _actionBar(Icons.payments_rounded, 'Mark as Paid (Cash)', AppColors.primary, () async {
+                      _actionBar(Icons.payments_rounded, l10n?.markAsPaid ?? 'Mark as Paid (Cash)', AppColors.primary, () async {
                          final messenger = ScaffoldMessenger.of(context);
                          await FirebaseService().markBookingPaid(widget.booking.bookingId);
-                         messenger.showSnackBar(const SnackBar(content: Text('Payment marked as paid!'), backgroundColor: AppColors.success));
+                         messenger.showSnackBar(SnackBar(content: Text(l10n?.paymentMarkedPaid ?? 'Paid!'), backgroundColor: AppColors.success));
                       }),
                   ],
 
@@ -709,7 +711,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                               Icon(_statusIcon(_currentStatus), color: _statusColor(_currentStatus), size: 20.sp),
                               SizedBox(width: 8.w),
                               Text(
-                                RideStatus.getLabel(_currentStatus),
+                                RideStatus.getLabel(context, _currentStatus),
                                 style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: _statusColor(_currentStatus)),
                               ),
                             ],
@@ -724,9 +726,9 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
                               ),
                               child: Column(
                                 children: [
-                                  Text('Your Ride OTP', style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                                  Text(l10n?.yourRideOtp ?? 'Your Ride OTP', style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
                                   Text(widget.booking.otp, style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold, letterSpacing: 4, color: AppColors.textPrimary)),
-                                  Text('Share this with the driver to start the ride', style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary)),
+                                  Text(l10n?.shareOtpWithDriver ?? 'Share this with the driver to start the ride', style: TextStyle(fontSize: 10.sp, color: AppColors.textSecondary)),
                                 ],
                               ),
                             ),
@@ -780,30 +782,31 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   }
 
   void _showOtpDialog() {
+    final l10n = AppLocalizations.of(context);
     final TextEditingController otpController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: const Text('Enter Passenger OTP'),
+        title: Text(l10n?.enterPassengerOtp ?? 'Enter Passenger OTP'),
         content: TextField(
           controller: otpController,
           keyboardType: TextInputType.number,
           maxLength: 4,
-          decoration: const InputDecoration(hintText: '4-digit OTP'),
+          decoration: InputDecoration(hintText: l10n?.fourDigitOtp ?? '4-digit OTP'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n?.cancel ?? 'Cancel')),
           ElevatedButton(
             onPressed: () {
               if (otpController.text == widget.booking.otp) {
                 Navigator.pop(context);
                 _updateStatus(RideStatus.started);
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid OTP!'), backgroundColor: AppColors.error));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n?.invalidOtp ?? 'Invalid OTP!'), backgroundColor: AppColors.error));
               }
             },
-            child: const Text('Verify & Start'),
+            child: Text(l10n?.verifyAndStart ?? 'Verify & Start'),
           ),
         ],
       ),
@@ -811,19 +814,20 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
   }
 
   void _showEndRideConfirmation() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.r)),
-        title: const Text('End Ride?'),
+        title: Text(l10n?.endRideConfirmTitle ?? 'End Ride?'),
         content: Text(
-          'Are you sure you want to end the ride to ${widget.booking.to}?',
+          l10n?.endRideConfirmContent(widget.booking.to) ?? 'Are you sure you want to end the ride?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -832,7 +836,7 @@ class _ActiveRideScreenState extends State<ActiveRideScreen> {
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error),
-            child: const Text('Yes, End Ride'),
+            child: Text(l10n?.yesEndRide ?? 'Yes, End Ride'),
           ),
         ],
       ),
